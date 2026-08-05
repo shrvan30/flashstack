@@ -46,6 +46,8 @@ class TaskOutcome:
     expected: str
     llm_calls: int
     parse_retries: int
+    throttle_waits: int
+    throttle_s: float
     steps: int
     prompt_tokens: int
     completion_tokens: int
@@ -131,6 +133,8 @@ def run_suite(args) -> dict:
                 expected=task["expected"],
                 llm_calls=result.llm_calls,
                 parse_retries=result.parse_retries,
+                throttle_waits=result.throttle_waits,
+                throttle_s=result.throttle_s,
                 steps=len(result.steps),
                 prompt_tokens=result.prompt_tokens,
                 completion_tokens=result.completion_tokens,
@@ -141,13 +145,17 @@ def run_suite(args) -> dict:
             )
         )
         mark = "ok  " if correct else "FAIL"
+        throttled = f" +{result.throttle_s:.0f}s throttled" if result.throttle_waits else ""
         print(
             f"[{index:>2}/{len(tasks)}] {mark} {task['id']:<4} "
             f"{result.llm_calls} calls ({result.parse_retries} retries) "
-            f"{result.wall_s:6.2f}s  answer={result.answer!r}"
+            f"{result.wall_s:6.2f}s{throttled}  answer={result.answer!r}"
         )
 
-    total_wall = time.perf_counter() - started
+    # As with per-task latency, quota waiting is excluded from the run's wall
+    # clock — for a local backend it is billed GPU time, and a throttle is not.
+    throttle_total = sum(o.throttle_s for o in outcomes)
+    total_wall = time.perf_counter() - started - throttle_total
     return summarise(args, suite, outcomes, total_wall)
 
 
@@ -192,6 +200,8 @@ def summarise(args, suite: dict, outcomes: list[TaskOutcome], total_wall: float)
             "llm_calls_total": sum(o.llm_calls for o in outcomes),
             "llm_calls_per_task": sum(o.llm_calls for o in outcomes) / count if count else 0.0,
             "parse_retries_total": sum(o.parse_retries for o in outcomes),
+            "throttle_waits_total": sum(o.throttle_waits for o in outcomes),
+            "throttle_s_total": sum(o.throttle_s for o in outcomes),
             "ttft_ms_p50": percentile(all_ttft, 0.50),
             "ttft_ms_p95": percentile(all_ttft, 0.95),
             "decode_tps_mean": (sum(all_tps) / len(all_tps)) if all_tps else 0.0,

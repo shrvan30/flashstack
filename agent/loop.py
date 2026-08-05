@@ -12,6 +12,14 @@ routing, no memory, no tool-choice logic beyond parsing what the model asked for
 Retries are counted and reported. A model that needs three attempts to emit valid
 JSON has cost three prefills and three decodes, and that is a real difference
 between backends serving models of different capability.
+
+Throttle waits are a different thing and are counted separately. A hosted
+endpoint on a shared tier can refuse a request outright with a 429; that costs no
+tokens, produces no completion, and says nothing about the backend's speed or the
+model's ability. Scoring it as a task failure would measure the account's quota
+rather than the serving stack, so the loop waits and re-issues instead, and
+subtracts the waiting from the latency it reports. Local backends never emit 429,
+so this path is inert for them and the workload stays identical across all three.
 """
 
 from __future__ import annotations
@@ -28,6 +36,14 @@ from agent.tools.mock_api import call as mock_api_call
 
 MAX_STEPS = 8
 MAX_RETRIES = 3
+
+# A refused request is re-issued rather than scored, but not forever: past this
+# many consecutive refusals the quota is not going to clear within the run and
+# the honest outcome is an error on the task. No single wait exceeds the length
+# of a per-minute window, since that is the longest a token bucket can take to
+# refill.
+MAX_THROTTLE_RETRIES = 8
+MAX_THROTTLE_WAIT_S = 60.0
 
 # Roughly four characters per token. The conversation is trimmed to stay under
 # this budget because the smallest backend in the comparison serves a 2048-token
@@ -68,6 +84,10 @@ Observation: 9450
 
 _FENCE = re.compile(r"^\s*```(?:json)?\s*|\s*```\s*$", re.MULTILINE)
 
+# Groq states the wait in the error body rather than a header; other providers
+# use `retry-after`. Both are read, the header first.
+_RETRY_HINT = re.compile(r"try again in ([0-9.]+)\s*(ms|s)\b", re.IGNORECASE)
+
 
 @dataclass
 class Step:
@@ -84,6 +104,8 @@ class AgentResult:
     steps: list[Step] = field(default_factory=list)
     llm_calls: int = 0
     parse_retries: int = 0
+    throttle_waits: int = 0
+    throttle_s: float = 0.0
     prompt_tokens: int = 0
     completion_tokens: int = 0
     ttft_ms: list[float] = field(default_factory=list)
@@ -174,6 +196,48 @@ def trim_context(messages: list[dict], budget: int = MAX_CONTEXT_CHARS) -> list[
     return trimmed
 
 
+def is_throttled(exc: Exception) -> bool:
+    """Whether a failure was the backend refusing to serve, not failing to serve.
+
+    Matched on the HTTP status rather than an SDK exception class so the agent
+    keeps depending on nothing but a client with `.chat.completions`, which is
+    what lets the same loop drive flashstack, vLLM and a hosted API unchanged.
+    """
+    return getattr(exc, "status_code", None) == 429
+
+
+def throttle_delay(exc: Exception, attempt: int) -> float:
+    """How long to wait before re-issuing a refused request.
+
+    The server's own instruction is preferred, but it is a floor rather than the
+    answer: a token-per-minute bucket tells each caller when *that* request would
+    fit, which under sustained load is a few hundred milliseconds away and refuses
+    again on arrival. Backing off exponentially underneath the server's figure
+    guarantees the wait grows, so a run converges instead of spinning through its
+    retry budget in a couple of seconds.
+    """
+    floor = min(2.0**attempt, MAX_THROTTLE_WAIT_S)
+
+    hint = None
+    headers = getattr(getattr(exc, "response", None), "headers", None)
+    if headers is not None:
+        try:
+            hint = float(headers.get("retry-after"))
+        except (TypeError, ValueError):
+            hint = None
+
+    if hint is None:
+        match = _RETRY_HINT.search(str(exc))
+        if match:
+            hint = float(match.group(1))
+            if match.group(2).lower() == "ms":
+                hint /= 1e3
+
+    if hint is None:
+        return floor
+    return min(max(hint + 0.25, floor), MAX_THROTTLE_WAIT_S)
+
+
 def run_tool(action: str, action_input: str) -> str:
     if action == "doc_search":
         return search(action_input)
@@ -200,11 +264,13 @@ class Agent:
         max_tokens: int = 200,
         seed: int | None = 0,
         stream: bool = False,
+        max_throttle_retries: int = MAX_THROTTLE_RETRIES,
     ) -> None:
         self.client = client
         self.model = model
         self.max_steps = max_steps
         self.max_retries = max_retries
+        self.max_throttle_retries = max_throttle_retries
         self.temperature = temperature
         self.max_tokens = max_tokens
         self.seed = seed
@@ -214,8 +280,7 @@ class Agent:
         """One LLM call, recording per-call metrics from whichever transport is used."""
         from bench.metrics import call_chat
 
-        text, metrics = call_chat(
-            self.client,
+        request = dict(
             model=self.model,
             messages=trim_context(messages),
             max_tokens=self.max_tokens,
@@ -223,6 +288,22 @@ class Agent:
             seed=self.seed,
             stream=self.stream,
         )
+
+        # Only a served call is counted and timed. A refusal is retried outside
+        # the measured region, so the metrics below describe the request that
+        # actually ran and carry none of the waiting.
+        for attempt in range(self.max_throttle_retries + 1):
+            try:
+                text, metrics = call_chat(self.client, **request)
+                break
+            except Exception as exc:
+                if not is_throttled(exc) or attempt == self.max_throttle_retries:
+                    raise
+                wait = throttle_delay(exc, attempt)
+                result.throttle_waits += 1
+                result.throttle_s += wait
+                time.sleep(wait)
+
         result.llm_calls += 1
         result.prompt_tokens += metrics.prompt_tokens
         result.completion_tokens += metrics.completion_tokens
@@ -291,5 +372,8 @@ class Agent:
         except Exception as exc:  # noqa: BLE001 - a backend failure is a result, not a crash
             result.error = f"{type(exc).__name__}: {exc}"
 
-        result.wall_s = time.perf_counter() - started
+        # Time spent waiting out a quota is not time the backend took to do the
+        # work, and leaving it in would make a throttled hosted run look slower
+        # than the local ones for a reason that has nothing to do with serving.
+        result.wall_s = time.perf_counter() - started - result.throttle_s
         return result
