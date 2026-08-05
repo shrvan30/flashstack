@@ -24,17 +24,15 @@ from __future__ import annotations
 import pytest
 import torch
 
-from tests.parity_utils import first_divergence, fp16_ulp, top2_gap
+from tests.parity_utils import (
+    assert_divergences_are_ties,
+    build_verdict,
+    first_divergence,
+    fp16_ulp,
+    report_divergences,
+)
 
 MAX_NEW_TOKENS = 64
-
-# A divergence must sit within this many fp16 ulps of a tie. Two, not one, because
-# the losing logit can itself be a rounding away from the winner.
-MAX_TIE_ULPS = 2.0
-
-# When the fp32 reference sides with stock, the runner may still be this many
-# times further from it before counting as a genuine accuracy regression.
-FP32_ERROR_RATIO = 1.5
 
 GPT2_PROMPTS = [
     "The capital of France is",
@@ -57,7 +55,7 @@ def _stock_greedy(model, input_ids: torch.Tensor, max_new_tokens: int) -> list[i
 
 
 def _judge(runner, stock, reference, tokenizer, prompt_ids, runner_tokens, stock_tokens):
-    """Return a human-readable verdict dict for one divergence, or None if identical."""
+    """Verdict for one divergence, or None if the sequences are identical."""
     position = first_divergence(runner_tokens, stock_tokens)
     if position is None:
         return None
@@ -75,66 +73,20 @@ def _judge(runner, stock, reference, tokenizer, prompt_ids, runner_tokens, stock
     finally:
         runner.free(slot)
 
-    gap, gap_ulps = top2_gap(stock_logits)
-    reference_token = int(reference_logits.argmax())
-
-    return {
-        "position": position,
-        "gap": gap,
-        "gap_ulps": gap_ulps,
-        "runner_token": runner_tokens[position],
-        "stock_token": stock_tokens[position],
-        "reference_token": reference_token,
-        "reference_prefers": (
-            "runner"
-            if reference_token == runner_tokens[position]
-            else "stock"
-            if reference_token == stock_tokens[position]
-            else "neither"
-        ),
-        "runner_error": (runner_logits - reference_logits).abs().max().item(),
-        "stock_error": (stock_logits - reference_logits).abs().max().item(),
-        "decoded": {
-            "runner": tokenizer.decode([runner_tokens[position]]),
-            "stock": tokenizer.decode([stock_tokens[position]]),
-            "reference": tokenizer.decode([reference_token]),
-        },
-    }
+    return build_verdict(
+        position=position,
+        candidate_token=runner_tokens[position],
+        baseline_token=stock_tokens[position],
+        candidate_logits=runner_logits,
+        baseline_logits=stock_logits,
+        reference_logits=reference_logits,
+        tokenizer=tokenizer,
+    )
 
 
-def _assert_divergences_are_ties(name: str, verdicts: list[dict], total: int) -> None:
-    matched = total - len(verdicts)
-    print(f"\n{name}: {matched}/{total} prompts matched stock generate() exactly")
-    for v in verdicts:
-        print(
-            f"  diverged at new-token index {v['position']}: "
-            f"runner={v['decoded']['runner']!r} stock={v['decoded']['stock']!r} "
-            f"fp32={v['decoded']['reference']!r} (prefers {v['reference_prefers']}); "
-            f"stock top-2 gap {v['gap']:.6f} = {v['gap_ulps']:.2f} ulp; "
-            f"fp32 error runner {v['runner_error']:.6f} vs stock {v['stock_error']:.6f}"
-        )
-    if not verdicts:
-        print("  no divergences")
-
-    for v in verdicts:
-        assert v["gap_ulps"] <= MAX_TIE_ULPS, (
-            f"{name} diverged at index {v['position']} where the stock model's "
-            f"top-2 gap was {v['gap']:.6f} ({v['gap_ulps']:.2f} ulp), beyond the "
-            f"{MAX_TIE_ULPS}-ulp tie tolerance. The stock model was confident there, "
-            f"so this is an engine defect, not a tie-break."
-        )
-        assert v["reference_prefers"] != "neither", (
-            f"{name} diverged at index {v['position']} and the fp32 reference picked "
-            f"{v['decoded']['reference']!r}, which is neither candidate "
-            f"({v['decoded']['runner']!r} / {v['decoded']['stock']!r}). Both fp16 "
-            f"paths are wrong there, which is not a tie-break story."
-        )
-        if v["reference_prefers"] == "stock":
-            assert v["runner_error"] <= FP32_ERROR_RATIO * v["stock_error"], (
-                f"{name} diverged at index {v['position']}, the fp32 reference sided "
-                f"with stock, and the runner is {v['runner_error'] / v['stock_error']:.2f}x "
-                f"further from it. That is an accuracy regression, not a tie-break."
-            )
+def _check(label: str, verdicts: list[dict], total: int) -> None:
+    report_divergences(label, verdicts, total)
+    assert_divergences_are_ties(label, verdicts)
 
 
 @pytest.fixture(scope="module")
@@ -193,7 +145,7 @@ def test_gpt2_runner_matches_stock_generate(gpt2_parity):
         if verdict is not None:
             verdicts.append(verdict)
 
-    _assert_divergences_are_ties("gpt2", verdicts, len(GPT2_PROMPTS))
+    _check("gpt2 runner-vs-stock", verdicts, len(GPT2_PROMPTS))
 
 
 @pytest.mark.gpu
@@ -212,7 +164,7 @@ def test_qwen_runner_matches_stock_generate(qwen_parity):
         if verdict is not None:
             verdicts.append(verdict)
 
-    _assert_divergences_are_ties("qwen2.5-0.5b-instruct", verdicts, len(QWEN_PROMPTS))
+    _check("qwen2.5 runner-vs-stock", verdicts, len(QWEN_PROMPTS))
 
 
 @pytest.mark.gpu
