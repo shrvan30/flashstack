@@ -1,0 +1,166 @@
+{
+  "corpus": "Halden Systems (fictional)",
+  "notes": "Every answer is derivable only from agent/corpus and agent/tools/mock_api.py, so no backend can score by recall alone. Temperature is 0 for every run; seed is sent to backends that accept it and ignored by those that do not. Answers are compared after normalising case, commas, currency words and whitespace.",
+  "tasks": [
+    {
+      "id": "s01",
+      "tier": "single",
+      "prompt": "What is the list price of one Kestrel K3, in euro?",
+      "expected": "1690",
+      "match": "contains",
+      "seed": 0
+    },
+    {
+      "id": "s02",
+      "tier": "single",
+      "prompt": "What is the resolution of the Vantage V1?",
+      "expected": "640 by 480",
+      "match": "contains",
+      "seed": 0
+    },
+    {
+      "id": "s03",
+      "tier": "single",
+      "prompt": "What is the response time for Gold support?",
+      "expected": "one business hour",
+      "match": "contains",
+      "seed": 0
+    },
+    {
+      "id": "s04",
+      "tier": "single",
+      "prompt": "How many months of warranty does Halden Systems hardware carry?",
+      "expected": "24",
+      "match": "contains",
+      "seed": 0
+    },
+    {
+      "id": "s05",
+      "tier": "single",
+      "prompt": "Who is the chief executive of Halden Systems?",
+      "expected": "marit osland",
+      "match": "contains",
+      "seed": 0
+    },
+    {
+      "id": "s06",
+      "tier": "single",
+      "prompt": "Which customer placed order A-1001?",
+      "expected": "nordkapp marine",
+      "match": "contains",
+      "seed": 0
+    },
+    {
+      "id": "s07",
+      "tier": "single",
+      "prompt": "What is the current temperature in Tromso, in degrees Celsius?",
+      "expected": "-6",
+      "match": "contains",
+      "seed": 0
+    },
+    {
+      "id": "s08",
+      "tier": "single",
+      "prompt": "What is 1240 multiplied by 12?",
+      "expected": "14880",
+      "match": "contains",
+      "seed": 0
+    },
+    {
+      "id": "d01",
+      "tier": "two-tool",
+      "prompt": "What do three Vantage V1 units cost in total, in euro?",
+      "expected": "9450",
+      "match": "contains",
+      "seed": 0
+    },
+    {
+      "id": "d02",
+      "tier": "two-tool",
+      "prompt": "What do twelve Kestrel K3 units cost in total at list price, in euro?",
+      "expected": "20280",
+      "match": "contains",
+      "seed": 0
+    },
+    {
+      "id": "d03",
+      "tier": "two-tool",
+      "prompt": "What do five Torvald T4 units cost in total, in euro?",
+      "expected": "4375",
+      "match": "contains",
+      "seed": 0
+    },
+    {
+      "id": "d04",
+      "tier": "two-tool",
+      "prompt": "What does an Extended site licence cost for two years, in euro?",
+      "expected": "23000",
+      "match": "contains",
+      "seed": 0
+    },
+    {
+      "id": "d05",
+      "tier": "two-tool",
+      "prompt": "What does Silver support cost over three years, in euro?",
+      "expected": "10800",
+      "match": "contains",
+      "seed": 0
+    },
+    {
+      "id": "d06",
+      "tier": "two-tool",
+      "prompt": "A customer returns one opened Vantage V1 within 30 days. What is the restocking fee in euro?",
+      "expected": "472.5",
+      "match": "contains",
+      "seed": 0
+    },
+    {
+      "id": "d07",
+      "tier": "two-tool",
+      "prompt": "What does the extended warranty cost for one Kestrel K3, in euro?",
+      "expected": "304.2",
+      "match": "contains",
+      "seed": 0
+    },
+    {
+      "id": "d08",
+      "tier": "two-tool",
+      "prompt": "How many units were ordered on order A-1002, and what is the list-price total for them in euro?",
+      "expected": "26250",
+      "match": "contains",
+      "seed": 0
+    },
+    {
+      "id": "m01",
+      "tier": "multi",
+      "prompt": "Order A-1003 contains two products. What is the combined list-price value of that order in euro, ignoring shipping and discounts?",
+      "expected": "11260",
+      "match": "contains",
+      "seed": 0
+    },
+    {
+      "id": "m02",
+      "tier": "multi",
+      "prompt": "Order A-1001 is for Kestrel K3 units. Applying the volume discount for that quantity, what is the hardware total in euro?",
+      "expected": "19266",
+      "match": "contains",
+      "seed": 0
+    },
+    {
+      "id": "m03",
+      "tier": "multi",
+      "prompt": "What is the combined list price in euro of one Kestrel K2, one Kestrel K3 and one Torvald T4?",
+      "expected": "3805",
+      "match": "contains",
+      "seed": 0
+    },
+    {
+      "id": "m04",
+      "tier": "multi",
+      "prompt": "Order A-1002 is for Torvald T4 units. Applying the volume discount for that quantity, what is the hardware total in euro?",
+      "expected": "23100",
+      "match": "contains",
+      "seed": 0
+    }
+  ]
+}

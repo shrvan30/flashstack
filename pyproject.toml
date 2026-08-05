@@ -43,6 +43,13 @@ target-version = "py310"
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
 
+[tool.ruff.lint.per-file-ignores]
+# The agent's system prompt is frozen text committed before benchmarking, and it
+# contains a one-line JSON schema and few-shot examples. Re-wrapping the source
+# would change the prompt the models actually receive, which is the one thing
+# that must not drift between backend runs.
+"agent/loop.py" = ["E501"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 markers = [
