@@ -20,6 +20,35 @@ from torch import nn
 HEAD_DIM = 64
 
 
+def split_qkv_heads(
+    fused: torch.Tensor, split_size: int, num_heads: int, head_dim: int = HEAD_DIM
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    """Carve a fused QKV projection into three contiguous `(B, H, N, d)` tensors.
+
+    GPT-2's `c_attn` emits `[Q | K | V]` concatenated along the channel axis, and
+    each piece is laid out head-*minor* as `(B, N, H*d)`. The kernel takes three
+    separate base pointers to `(B, H, N, d)` regions and strides through each
+    assuming contiguous row-major, so both the split and the transpose-copy are
+    required, not stylistic.
+
+    Shared by the in-place model patch and the engine's GPT-2 runner so the two
+    cannot drift apart.
+    """
+    batch, seq_len, _ = fused.shape
+    query, key, value = fused.split(split_size, dim=2)
+
+    def reshape(x: torch.Tensor) -> torch.Tensor:
+        return x.view(batch, seq_len, num_heads, head_dim).transpose(1, 2).contiguous()
+
+    return reshape(query), reshape(key), reshape(value)
+
+
+def merge_heads(attn_output: torch.Tensor) -> torch.Tensor:
+    """`(B, H, N, d)` back to `(B, N, H*d)` for the output projection."""
+    batch, _, seq_len, _ = attn_output.shape
+    return attn_output.transpose(1, 2).contiguous().view(batch, seq_len, -1)
+
+
 class FlashAttentionGPT2(nn.Module):
     """GPT-2 self-attention with the attention core running on flashattn_cuda.
 
@@ -78,34 +107,19 @@ class FlashAttentionGPT2(nn.Module):
         if not hidden_states.is_cuda:
             raise RuntimeError("the kernel is CUDA-only; move the model to a GPU")
 
-        batch, seq_len, _ = hidden_states.shape
-
         # GPT-2 stores Q, K and V in one fused projection, so the kernel's three
         # inputs have to be carved out of a single output tensor before any of
         # them can be reshaped into the (B, H, N, 64) layout it requires.
-        query, key, value = self.c_attn(hidden_states).split(self.split_size, dim=2)
-
-        query = self._to_bhnd(query, batch, seq_len)
-        key = self._to_bhnd(key, batch, seq_len)
-        value = self._to_bhnd(value, batch, seq_len)
+        query, key, value = split_qkv_heads(
+            self.c_attn(hidden_states), self.split_size, self.num_heads, self.head_dim
+        )
 
         attn_output = flashattn_cuda.prefill(query, key, value, True, self.scaling)
-
-        # (B, H, N, d) -> (B, N, H*d). The transpose leaves a non-contiguous
-        # view, so the copy is explicit rather than left to reshape.
-        attn_output = attn_output.transpose(1, 2).contiguous().view(batch, seq_len, -1)
+        attn_output = merge_heads(attn_output)
 
         attn_output = self.c_proj(attn_output)
         attn_output = self.resid_dropout(attn_output)
         return attn_output, None
-
-    def _to_bhnd(self, x: torch.Tensor, batch: int, seq_len: int) -> torch.Tensor:
-        """(B, N, H*d) -> contiguous (B, H, N, d), which is the kernel's contract."""
-        return (
-            x.view(batch, seq_len, self.num_heads, self.head_dim)
-            .transpose(1, 2)
-            .contiguous()
-        )
 
 
 def _reject_non_causal_mask(attention_mask: torch.Tensor | None) -> None:
