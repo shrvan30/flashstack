@@ -1,0 +1,93 @@
+# Decode dispatch overhead
+
+Where the wall clock goes during decoding, measured with Nsight Systems.
+This is a diagnosis, not a tuning exercise: nothing here was optimised as a
+result, and the figure exists so the backend comparison can attribute its
+gap to the right cause.
+
+Trace: `decode_steps.nsys-rep` — capture range opened after warm-up via
+`torch.cuda.profiler.start()`, so model load, prefill and context setup are
+excluded. GPU performance counters are unavailable on this host, so this is
+pure CUDA API/kernel tracing (`nsys -t cuda`, never `--gpu-metrics-device`).
+
+| run | |
+| :-- | --: |
+| model | Qwen/Qwen2.5-0.5B-Instruct |
+| layers | 24 |
+| decode steps timed | 20 |
+| warm-up steps (untraced) | 10 |
+| context length after run | 67 |
+| wall clock | 2271.0 ms |
+| per step | 113.55 ms |
+| throughput | 8.8 tok/s |
+
+### Tracing overhead, and the corrected figure
+
+Nsight Systems instruments every CUDA call, which lengthens exactly the
+host-side gaps this measurement is about. The same run was therefore
+timed without the profiler attached:
+
+| | ms/step | tok/s |
+| :-- | --: | --: |
+| under nsys | 113.55 | 8.8 |
+| untraced | 64.78 | 15.4 |
+| inflation | 1.75x | |
+
+GPU busy time per step is a property of the work, not of the observer, so
+the 3.93 ms/step of measured GPU activity
+carries over unchanged. Against the untraced step time that gives:
+
+- **GPU busy in normal operation: ~6%**
+- **GPU idle in normal operation: ~94%**
+
+The untraced figure is the one to quote. The traced percentages below
+are the raw measurement it is derived from.
+
+## GPU busy versus idle
+
+Busy time is the **union** of GPU operation intervals, not their sum:
+operations can overlap across streams, and summing would let busy time
+exceed the wall clock.
+
+| | |
+| :-- | --: |
+| traced span | 2270.64 ms |
+| **GPU busy** | **78.60 ms (3.5%)** |
+| **GPU idle** | **2192.04 ms (96.5%)** |
+| GPU operations | 27760 (26180 kernels, 1580 memory) |
+| operations per decode step | 1388 |
+| mean operation duration | 2.8 us |
+| mean gap between operations | 79.0 us |
+| largest gaps | 191 us, 187 us, 182 us, 165 us, 164 us |
+
+## Reading this
+
+The GPU is idle 97% of the traced wall clock. The engine
+issues about 1388 GPU operations per token and each
+one runs for 2.8 us on average, separated by roughly
+79.0 us of nothing. Those gaps are the host: Python
+attribute lookups, tensor allocation, argument checking and the launch call
+itself, all of which happen between kernels rather than during them.
+
+The consequence for interpreting any backend comparison: decode throughput
+here is set by **host dispatch rate**, not by attention kernel speed. A
+faster attention kernel would shrink a small share of the busy fraction and
+leave the idle fraction untouched. The changes that would move this number
+are CUDA graphs (replay a captured launch sequence instead of re-issuing it),
+operator fusion, and continuous batching (more work per launch) — all of
+which are out of scope for this stage and none of which are about attention.
+
+## Reproduce
+
+```bash
+nsys profile -t cuda --capture-range=cudaProfilerApi --capture-range-end=stop \
+    -o docs/profiles/decode_steps --force-overwrite true \
+    python bench/profile_decode.py --steps 20 --summary /tmp/traced.json
+
+python bench/profile_decode.py --steps 20 --summary /tmp/untraced.json
+
+python bench/analyze_decode_trace.py \
+    --report docs/profiles/decode_steps.nsys-rep \
+    --wall-summary /tmp/traced.json --baseline-summary /tmp/untraced.json \
+    --out docs/profiles/decode_dispatch.md
+```

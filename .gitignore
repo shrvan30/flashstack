@@ -98,3 +98,7 @@ dmypy.json
 *.ncu-rep
 *.qdrep
 *.sqlite
+
+# Profiles that are deliberately published are the exception: they are evidence
+# for claims made in docs/, so they are committed alongside the analysis.
+!docs/profiles/*.nsys-rep
