@@ -25,6 +25,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 from agent.loop import Agent
+from bench.metrics import summarise_sources
 from bench.scoring import percentile, score
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -53,7 +54,14 @@ class TaskOutcome:
     completion_tokens: int
     wall_s: float
     ttft_ms: list[float] = field(default_factory=list)
+    ttft_sources: list[str] = field(default_factory=list)
     decode_tps: list[float] = field(default_factory=list)
+    decode_tps_sources: list[str] = field(default_factory=list)
+    server_ttft_ms: list[float] = field(default_factory=list)
+    server_ttft_sources: list[str] = field(default_factory=list)
+    server_decode_tps: list[float] = field(default_factory=list)
+    server_decode_tps_sources: list[str] = field(default_factory=list)
+    metric_notes: list[str] = field(default_factory=list)
     error: str | None = None
 
 
@@ -140,7 +148,14 @@ def run_suite(args) -> dict:
                 completion_tokens=result.completion_tokens,
                 wall_s=result.wall_s,
                 ttft_ms=result.ttft_ms,
+                ttft_sources=result.ttft_sources,
                 decode_tps=result.decode_tps,
+                decode_tps_sources=result.decode_tps_sources,
+                server_ttft_ms=result.server_ttft_ms,
+                server_ttft_sources=result.server_ttft_sources,
+                server_decode_tps=result.server_decode_tps,
+                server_decode_tps_sources=result.server_decode_tps_sources,
+                metric_notes=result.metric_notes,
                 error=result.error,
             )
         )
@@ -157,6 +172,53 @@ def run_suite(args) -> dict:
     throttle_total = sum(o.throttle_s for o in outcomes)
     total_wall = time.perf_counter() - started - throttle_total
     return summarise(args, suite, outcomes, total_wall)
+
+
+def provenance(outcomes: list[TaskOutcome], streamed: bool) -> dict:
+    """Where every published figure in this run came from.
+
+    This travels in the results JSON next to the figures themselves so a report
+    generated later — possibly by someone who did not run the benchmark — can
+    state each column's meaning without guessing it from the backend name.
+    """
+
+    def gather(values_attr: str, sources_attr: str) -> tuple[list[float], list[str]]:
+        values, sources = [], []
+        for outcome in outcomes:
+            values.extend(getattr(outcome, values_attr))
+            sources.extend(getattr(outcome, sources_attr))
+        return values, sources
+
+    published_ttft = summarise_sources(*gather("ttft_ms", "ttft_sources"))
+    published_tps = summarise_sources(*gather("decode_tps", "decode_tps_sources"))
+    cross_ttft = summarise_sources(*gather("server_ttft_ms", "server_ttft_sources"))
+    cross_tps = summarise_sources(*gather("server_decode_tps", "server_decode_tps_sources"))
+
+    server_ttft_values, _ = gather("server_ttft_ms", "server_ttft_sources")
+
+    notes: list[str] = []
+    for outcome in outcomes:
+        for note in outcome.metric_notes:
+            if note not in notes:
+                notes.append(note)
+
+    return {
+        "rule": (
+            "Published TTFT and decode throughput are the client-side stream "
+            "measurement on every backend. A server-reported figure is recorded "
+            "as a cross-check and never substituted into a published column."
+        ),
+        "streamed": streamed,
+        "published": {"ttft_ms": published_ttft, "decode_tps": published_tps},
+        "cross_check": {
+            "server_ttft_ms": {
+                **cross_ttft,
+                "p50": percentile(server_ttft_values, 0.50),
+            },
+            "server_decode_tps": cross_tps,
+        },
+        "notes": notes,
+    }
 
 
 def summarise(args, suite: dict, outcomes: list[TaskOutcome], total_wall: float) -> dict:
@@ -188,6 +250,7 @@ def summarise(args, suite: dict, outcomes: list[TaskOutcome], total_wall: float)
         "base_url": args.base_url,
         "stream": args.stream,
         "suite": {"corpus": suite.get("corpus"), "tasks": count},
+        "provenance": provenance(outcomes, streamed=bool(args.stream)),
         "hardware": hardware(),
         "commits": {
             "flashstack": git_sha(REPO_ROOT),
@@ -257,15 +320,40 @@ def main() -> int:
     destination = args.out or RESULTS_DIR / f"{args.backend}.json"
     destination.write_text(json.dumps(payload, indent=2))
 
+    prov = payload["provenance"]
+    ttft_src = "/".join(prov["published"]["ttft_ms"]["unique_sources"]) or "unavailable"
+    tps_src = "/".join(prov["published"]["decode_tps"]["unique_sources"]) or "unavailable"
+
     print(
         f"\n{args.backend}: {results['correct']}/{results['tasks']} correct "
         f"({results['success_rate']:.0f}%), "
         f"{results['llm_calls_per_task']:.1f} calls/task, "
-        f"TTFT p50 {results['ttft_ms_p50']:.0f} ms, "
-        f"decode {results['decode_tps_mean']:.1f} tok/s, "
+        f"TTFT p50 {results['ttft_ms_p50']:.0f} ms [{ttft_src}], "
+        f"decode {results['decode_tps_mean']:.1f} tok/s [{tps_src}], "
         f"latency p50 {results['task_latency_s_p50']:.1f}s, "
         f"cost/task {results['cost_per_task']:.5f}"
     )
+
+    if not prov["published"]["ttft_ms"]["publishable"]:
+        print(
+            f"WARNING: TTFT source is {ttft_src!r}, not 'client-stream'. "
+            "Re-run with --stream before publishing this figure."
+        )
+    for key in ("ttft_ms", "decode_tps"):
+        if prov["published"][key]["mixed"]:
+            print(
+                f"WARNING: {key} mixes sources "
+                f"{prov['published'][key]['unique_sources']} within one column."
+            )
+
+    cross = prov["cross_check"]["server_ttft_ms"]
+    if cross["n"]:
+        print(
+            f"cross-check: server-reported TTFT p50 {cross['p50']:.0f} ms "
+            f"from {'/'.join(cross['unique_sources'])} over {cross['n']} calls "
+            "(not published)"
+        )
+
     print(f"wrote {destination}")
     return 0
 

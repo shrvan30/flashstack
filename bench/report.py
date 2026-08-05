@@ -86,6 +86,107 @@ def fmt(value: float, digits: int = 1) -> str:
     return f"{value:,.{digits}f}"
 
 
+def sources_of(payload: dict, key: str) -> str:
+    """The source label(s) behind one published figure, as printable text."""
+    record = payload.get("provenance", {}).get("published", {}).get(key)
+    if not record or not record.get("unique_sources"):
+        return "unlabelled"
+    label = " + ".join(record["unique_sources"])
+    return f"**mixed: {label}**" if record.get("mixed") else label
+
+
+def provenance_section(payloads: dict[str, dict]) -> list[str]:
+    """State, per backend, what each published figure actually measures.
+
+    A reader comparing a TTFT column across three serving stacks has no way to
+    tell from the number itself whether it was taken at the server or the
+    client. Printing the label next to every figure is the only thing that makes
+    the column a comparison rather than a coincidence.
+    """
+    any_provenance = any("provenance" in p for p in payloads.values())
+    if not any_provenance:
+        return [
+            "",
+            "## Metric provenance",
+            "",
+            "These result files predate provenance recording, so the source of each",
+            "figure is not known from the data. Re-run the benchmark before publishing.",
+        ]
+
+    rule = next(
+        (p["provenance"]["rule"] for p in payloads.values() if "provenance" in p),
+        "",
+    )
+
+    lines = [
+        "",
+        "## Metric provenance",
+        "",
+        rule,
+        "",
+        "| backend | streamed | TTFT p50 source | decode tok/s source | server cross-check |",
+        "| :-- | :-- | :-- | :-- | :-- |",
+    ]
+
+    for backend, payload in payloads.items():
+        prov = payload.get("provenance")
+        if not prov:
+            lines.append(f"| {LABELS[backend]} | ? | unlabelled | unlabelled | - |")
+            continue
+        cross = prov["cross_check"]["server_ttft_ms"]
+        cross_text = (
+            f"{fmt(cross['p50'], 0)} ms from "
+            f"{' + '.join(cross['unique_sources'])} ({cross['n']} calls)"
+            if cross["n"]
+            else "none reported"
+        )
+        lines.append(
+            f"| {LABELS[backend]} | {'yes' if prov['streamed'] else '**no**'} | "
+            f"{sources_of(payload, 'ttft_ms')} | "
+            f"{sources_of(payload, 'decode_tps')} | {cross_text} |"
+        )
+
+    warnings = []
+    for backend, payload in payloads.items():
+        prov = payload.get("provenance")
+        if not prov:
+            continue
+        for key, column in (("ttft_ms", "TTFT"), ("decode_tps", "decode tok/s")):
+            record = prov["published"][key]
+            if record["mixed"]:
+                warnings.append(
+                    f"- **{LABELS[backend]}** {column} mixes "
+                    f"{' and '.join(record['unique_sources'])} inside one column."
+                )
+            elif not record["publishable"]:
+                warnings.append(
+                    f"- **{LABELS[backend]}** {column} is "
+                    f"{' + '.join(record['unique_sources']) or 'unavailable'}, not "
+                    "client-stream, so it is not comparable with the other rows."
+                )
+        for note in prov.get("notes", []):
+            warnings.append(f"- **{LABELS[backend]}**: {note}.")
+
+    if warnings:
+        lines += ["", "**Comparability warnings**", ""] + warnings
+    else:
+        lines += [
+            "",
+            "Every published latency and throughput figure above is a client-side",
+            "stream measurement, taken the same way on all three backends.",
+        ]
+
+    lines += [
+        "",
+        "The cross-check column is flashstack's own `x-ttft-ms`, which the other two",
+        "backends do not report. It is shown because the difference between it and the",
+        "published client figure is a real quantity — the transport and framing cost",
+        "the client pays on top of the server's own timing — and hidden nowhere: it is",
+        "never the number in the results table.",
+    ]
+    return lines
+
+
 def build_report(payloads: dict[str, dict], dispatch_note: str | None) -> str:
     if not payloads:
         raise SystemExit("no result files found; run bench.run first")
@@ -129,6 +230,13 @@ def build_report(payloads: dict[str, dict], dispatch_note: str | None) -> str:
             f"{fmt(r['task_latency_s_p50'])} | {fmt(r['task_latency_s_p95'])} | "
             f"{r['cost_per_task']:.5f} |"
         )
+
+    lines += [
+        "",
+        "TTFT and decode throughput above are client-side stream measurements on "
+        "every row; see [Metric provenance](#metric-provenance) for the per-backend "
+        "labels and the server-reported cross-check.",
+    ]
 
     lines += [
         "",
@@ -178,7 +286,28 @@ def build_report(payloads: dict[str, dict], dispatch_note: str | None) -> str:
             f"{cell('multi')} |"
         )
 
+    lines += provenance_section(payloads)
+
     lines += [
+        "",
+        "## How retries and throttling are counted",
+        "",
+        "Two different things can make a backend issue more calls than the task",
+        "needs, and they are accounted differently because they cost differently.",
+        "",
+        "- **Parse retries** are billed work. The model returned something that was",
+        "  not a valid action object, the agent sent one corrective message, and the",
+        "  backend generated a second time. Those calls appear in `calls/task`, their",
+        "  tokens appear in the token counts, and their latency stays inside the task",
+        "  latency figures. A backend that formats badly should look more expensive,",
+        "  because it is.",
+        "- **Throttle waits** are not work. A hosted endpoint refused the request",
+        "  before serving it, so nothing was computed and nothing was billed. The",
+        "  wait is counted and reported separately, and is subtracted from task",
+        "  latency and from the run's wall clock. Leaving it in would charge a local",
+        "  backend's GPU-hour rate for time spent sleeping, and would make a",
+        "  rate-limited hosted anchor look computationally slow when it was merely",
+        "  queued.",
         "",
         "## Charts",
         "",

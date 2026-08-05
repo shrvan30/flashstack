@@ -108,8 +108,19 @@ class AgentResult:
     throttle_s: float = 0.0
     prompt_tokens: int = 0
     completion_tokens: int = 0
+    # Published per-call figures, each with the source label of the call that
+    # produced it. The lists are index-aligned: `ttft_sources[i]` says where
+    # `ttft_ms[i]` came from, and a figure is never recorded without its label.
     ttft_ms: list[float] = field(default_factory=list)
+    ttft_sources: list[str] = field(default_factory=list)
     decode_tps: list[float] = field(default_factory=list)
+    decode_tps_sources: list[str] = field(default_factory=list)
+    # Server-reported cross-check, same index-aligned discipline.
+    server_ttft_ms: list[float] = field(default_factory=list)
+    server_ttft_sources: list[str] = field(default_factory=list)
+    server_decode_tps: list[float] = field(default_factory=list)
+    server_decode_tps_sources: list[str] = field(default_factory=list)
+    metric_notes: list[str] = field(default_factory=list)
     wall_s: float = 0.0
     error: str | None = None
 
@@ -307,10 +318,24 @@ class Agent:
         result.llm_calls += 1
         result.prompt_tokens += metrics.prompt_tokens
         result.completion_tokens += metrics.completion_tokens
-        if metrics.ttft_ms:
+
+        # A value and its provenance are appended together or not at all, so the
+        # aggregate can never attribute a figure to the wrong source.
+        if metrics.ttft_ms is not None:
             result.ttft_ms.append(metrics.ttft_ms)
-        if metrics.decode_tps:
+            result.ttft_sources.append(metrics.ttft_source)
+        if metrics.decode_tps is not None:
             result.decode_tps.append(metrics.decode_tps)
+            result.decode_tps_sources.append(metrics.decode_tps_source)
+        if metrics.server_ttft_ms is not None:
+            result.server_ttft_ms.append(metrics.server_ttft_ms)
+            result.server_ttft_sources.append(metrics.server_ttft_source)
+        if metrics.server_decode_tps is not None:
+            result.server_decode_tps.append(metrics.server_decode_tps)
+            result.server_decode_tps_sources.append(metrics.server_decode_tps_source)
+        for note in metrics.notes:
+            if note not in result.metric_notes:
+                result.metric_notes.append(note)
         return text
 
     def run(self, task_id: str, prompt: str) -> AgentResult:
