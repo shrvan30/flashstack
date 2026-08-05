@@ -1,5 +1,7 @@
 # flashstack
 
+[![CI](https://github.com/shrvan30/flashstack/actions/workflows/ci.yml/badge.svg)](https://github.com/shrvan30/flashstack/actions/workflows/ci.yml)
+
 An inference stack built bottom-up on hand-written CUDA: a FlashAttention kernel,
 an engine that runs real models on it, an OpenAI-compatible server, and an agent
 benchmark that measures the whole thing under realistic multi-call traffic.

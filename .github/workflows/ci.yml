@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: ruff
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install ruff
+      - run: ruff check .
+
+  test:
+    name: cpu tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      # CPU wheels only. The GPU tests skip themselves without a device or the
+      # flashattn_cuda extension, so this runner needs neither a CUDA toolchain
+      # nor the several gigabytes a CUDA-enabled torch would pull in.
+      - name: Install CPU torch
+        run: pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Install package
+        run: pip install -e ".[dev]"
+
+      - name: Show what will be skipped
+        run: python -c "import torch; print('cuda available:', torch.cuda.is_available())"
+
+      - name: Run tests
+        run: pytest -v
+
+      # A CPU runner must not silently collect zero tests: a broken import would
+      # otherwise read as a green build. Require a floor of real CPU tests.
+      - name: Assert the CPU suite actually ran
+        run: |
+          collected=$(pytest -m "not gpu" --collect-only -q | grep -cE '^tests/')
+          echo "collected $collected CPU tests"
+          test "$collected" -ge 60
