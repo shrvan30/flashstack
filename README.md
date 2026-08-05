@@ -16,10 +16,55 @@ benchmark follow.
 
 | layer | state |
 | :-- | :-- |
-| `engine/` — model runners, KV cache, sampling | in progress |
+| `engine/` — model runners, KV cache, sampling | GPT-2 attention runs on the kernel |
 | `server/` — OpenAI-compatible FastAPI server | not started |
 | `agent/` — ReAct agent used as a measurement workload | not started |
 | `bench/` — three-backend benchmark harness | not started |
+
+## The kernel runs a real model
+
+`engine.patching.patch_gpt2` replaces every GPT-2 block's attention with the
+`flashattn_cuda` prefill kernel — splitting the fused QKV projection, reshaping to
+the kernel's `(B, H, N, 64)` contract, and merging the heads back through the
+original output projection. Weights are untouched; only the operation changes.
+
+```console
+$ python examples/generate.py --prompt "The capital of France is"
+model            : gpt2
+device           : NVIDIA GeForce RTX 3090
+prompt           : 'The capital of France is'
+new tokens       : 48 (greedy, use_cache=False)
+
+--- stock attention -------------------------------------------------
+ the capital of the French Republic, and the capital of the French Republic is the capital of the French Republic.
+
+The French Republic is the capital of the French Republic.
+
+The French Republic is the capital of the French Republic.
+
+--- flashattn_cuda prefill ------------------------------------------
+ the capital of the French Republic, and the capital of the French Republic is the capital of the French Republic.
+
+The French Republic is the capital of the French Republic.
+
+The French Republic is the capital of the French Republic.
+
+identical output : True
+stock            :    805.8 ms     59.6 tok/s
+flashattn_cuda   :    793.6 ms     60.5 tok/s
+```
+
+The interesting result is `identical output : True`. Greedy generation of 64
+tokens reproduces the stock model's token sequence exactly on all five parity
+prompts, and logits differ by at most 0.19 — the patched model is never more than
+1.03× further from an fp32 reference than stock fp16 attention is.
+
+Those throughput numbers are **not** a kernel benchmark. This stage is
+prefill-only, so both models run with `use_cache=False` and recompute the whole
+sequence every step. The comparison is fair — identical work on both sides — but
+far slower than cached decoding. The KV cache and the decode kernel arrive with
+the engine; kernel-level numbers live in the
+[kernel repo's benchmarks](https://github.com/shrvan30/flash-attention-cuda/blob/main/docs/benchmarks.md).
 
 ## Requirements
 
