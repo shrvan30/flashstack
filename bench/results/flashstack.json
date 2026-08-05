@@ -1,0 +1,674 @@
+{
+  "backend": "flashstack",
+  "model": "Qwen/Qwen2.5-0.5B-Instruct",
+  "base_url": "http://127.0.0.1:8000/v1",
+  "stream": false,
+  "suite": {
+    "corpus": "Halden Systems (fictional)",
+    "tasks": 20
+  },
+  "hardware": {
+    "gpu": "NVIDIA GeForce RTX 3090",
+    "driver": "570.211.01",
+    "cuda": "12.8",
+    "torch": "2.11.0+cu128"
+  },
+  "commits": {
+    "flashstack": "2ab83a7",
+    "flash_attention_cuda": "31b7155"
+  },
+  "results": {
+    "success_rate": 10.0,
+    "correct": 2,
+    "tasks": 20,
+    "llm_calls_total": 128,
+    "llm_calls_per_task": 6.4,
+    "parse_retries_total": 23,
+    "ttft_ms_p50": 94.2,
+    "ttft_ms_p95": 103.42,
+    "decode_tps_mean": 14.17890625,
+    "task_latency_s_p50": 21.725914941023802,
+    "task_latency_s_p95": 32.22392088599736,
+    "prompt_tokens": 124983,
+    "completion_tokens": 5914,
+    "wall_s_total": 423.76986916700844,
+    "cost_total": 0.04119984839123693,
+    "cost_per_task": 0.0020599924195618463,
+    "cost_basis": "wall-clock GPU time at 0.35/hour"
+  },
+  "by_tier": {
+    "multi": {
+      "tasks": 4,
+      "correct": 0,
+      "llm_calls_per_task": 5.0
+    },
+    "single": {
+      "tasks": 8,
+      "correct": 1,
+      "llm_calls_per_task": 7.875
+    },
+    "two-tool": {
+      "tasks": 8,
+      "correct": 1,
+      "llm_calls_per_task": 5.625
+    }
+  },
+  "tasks": [
+    {
+      "id": "s01",
+      "tier": "single",
+      "correct": false,
+      "answer": "9450 euro",
+      "expected": "1690",
+      "llm_calls": 4,
+      "parse_retries": 0,
+      "steps": 4,
+      "prompt_tokens": 3229,
+      "completion_tokens": 214,
+      "wall_s": 14.969136907020584,
+      "ttft_ms": [
+        122.76,
+        89.81,
+        90.79,
+        89.91
+      ],
+      "decode_tps": [
+        15.36,
+        14.88,
+        14.61,
+        14.71
+      ],
+      "error": null
+    },
+    {
+      "id": "s02",
+      "tier": "single",
+      "correct": false,
+      "answer": "14880",
+      "expected": "640 by 480",
+      "llm_calls": 6,
+      "parse_retries": 0,
+      "steps": 6,
+      "prompt_tokens": 4984,
+      "completion_tokens": 359,
+      "wall_s": 23.959366808994673,
+      "ttft_ms": [
+        86.72,
+        88.53,
+        99.03,
+        111.78,
+        91.28,
+        90.48
+      ],
+      "decode_tps": [
+        15.38,
+        14.75,
+        14.67,
+        14.83,
+        14.85,
+        14.98
+      ],
+      "error": null
+    },
+    {
+      "id": "s03",
+      "tier": "single",
+      "correct": false,
+      "answer": null,
+      "expected": "one business hour",
+      "llm_calls": 5,
+      "parse_retries": 3,
+      "steps": 2,
+      "prompt_tokens": 3043,
+      "completion_tokens": 231,
+      "wall_s": 15.527876592997927,
+      "ttft_ms": [
+        87.85,
+        88.08,
+        87.62,
+        89.28,
+        89.77
+      ],
+      "decode_tps": [
+        15.0,
+        15.11,
+        14.96,
+        15.02,
+        15.07
+      ],
+      "error": "could not parse an action after retries"
+    },
+    {
+      "id": "s04",
+      "tier": "single",
+      "correct": false,
+      "answer": null,
+      "expected": "24",
+      "llm_calls": 8,
+      "parse_retries": 0,
+      "steps": 8,
+      "prompt_tokens": 8796,
+      "completion_tokens": 275,
+      "wall_s": 18.828955789998872,
+      "ttft_ms": [
+        86.57,
+        91.13,
+        89.42,
+        91.3,
+        93.91,
+        95.42,
+        92.71,
+        93.79
+      ],
+      "decode_tps": [
+        15.07,
+        14.86,
+        14.83,
+        14.7,
+        14.61,
+        14.58,
+        14.84,
+        14.8
+      ],
+      "error": "hit the 8-step limit without answering"
+    },
+    {
+      "id": "s05",
+      "tier": "single",
+      "correct": false,
+      "answer": null,
+      "expected": "marit osland",
+      "llm_calls": 8,
+      "parse_retries": 0,
+      "steps": 8,
+      "prompt_tokens": 9764,
+      "completion_tokens": 248,
+      "wall_s": 17.03824003599584,
+      "ttft_ms": [
+        87.37,
+        88.72,
+        90.72,
+        94.39,
+        97.65,
+        102.39,
+        94.23,
+        94.57
+      ],
+      "decode_tps": [
+        14.81,
+        14.66,
+        14.84,
+        14.86,
+        14.85,
+        14.93,
+        14.89,
+        14.94
+      ],
+      "error": "hit the 8-step limit without answering"
+    },
+    {
+      "id": "s06",
+      "tier": "single",
+      "correct": true,
+      "answer": "Nordkapp Marine",
+      "expected": "nordkapp marine",
+      "llm_calls": 2,
+      "parse_retries": 0,
+      "steps": 2,
+      "prompt_tokens": 973,
+      "completion_tokens": 62,
+      "wall_s": 4.208509158022935,
+      "ttft_ms": [
+        86.53,
+        87.7
+      ],
+      "decode_tps": [
+        15.0,
+        14.87
+      ],
+      "error": null
+    },
+    {
+      "id": "s07",
+      "tier": "single",
+      "correct": false,
+      "answer": null,
+      "expected": "-6",
+      "llm_calls": 14,
+      "parse_retries": 6,
+      "steps": 8,
+      "prompt_tokens": 13244,
+      "completion_tokens": 474,
+      "wall_s": 32.22392088599736,
+      "ttft_ms": [
+        86.81,
+        87.06,
+        87.65,
+        88.75,
+        88.53,
+        89.38,
+        89.02,
+        89.75,
+        90.04,
+        90.86,
+        91.2,
+        94.22,
+        92.79,
+        93.8
+      ],
+      "decode_tps": [
+        15.33,
+        14.94,
+        14.84,
+        14.96,
+        14.86,
+        14.94,
+        14.75,
+        14.91,
+        14.86,
+        14.92,
+        14.84,
+        14.9,
+        14.84,
+        14.93
+      ],
+      "error": "hit the 8-step limit without answering"
+    },
+    {
+      "id": "s08",
+      "tier": "single",
+      "correct": false,
+      "answer": null,
+      "expected": "14880",
+      "llm_calls": 16,
+      "parse_retries": 8,
+      "steps": 8,
+      "prompt_tokens": 15277,
+      "completion_tokens": 467,
+      "wall_s": 32.02132297900971,
+      "ttft_ms": [
+        86.61,
+        89.72,
+        88.53,
+        89.62,
+        88.81,
+        89.86,
+        89.82,
+        91.04,
+        90.32,
+        90.43,
+        90.59,
+        91.04,
+        91.41,
+        92.75,
+        92.38,
+        94.2
+      ],
+      "decode_tps": [
+        14.74,
+        14.98,
+        14.75,
+        15.02,
+        14.78,
+        14.99,
+        14.76,
+        15.02,
+        14.67,
+        15.02,
+        14.76,
+        14.99,
+        14.79,
+        15.02,
+        14.78,
+        14.98
+      ],
+      "error": "hit the 8-step limit without answering"
+    },
+    {
+      "id": "d01",
+      "tier": "two-tool",
+      "correct": true,
+      "answer": "9450 euro",
+      "expected": "9450",
+      "llm_calls": 3,
+      "parse_retries": 0,
+      "steps": 3,
+      "prompt_tokens": 1917,
+      "completion_tokens": 181,
+      "wall_s": 12.000160891009727,
+      "ttft_ms": [
+        86.7,
+        88.47,
+        88.84
+      ],
+      "decode_tps": [
+        15.36,
+        14.87,
+        14.84
+      ],
+      "error": null
+    },
+    {
+      "id": "d02",
+      "tier": "two-tool",
+      "correct": false,
+      "answer": "14880 euro",
+      "expected": "20280",
+      "llm_calls": 3,
+      "parse_retries": 0,
+      "steps": 3,
+      "prompt_tokens": 1938,
+      "completion_tokens": 199,
+      "wall_s": 13.174054084985983,
+      "ttft_ms": [
+        86.83,
+        88.68,
+        89.69
+      ],
+      "decode_tps": [
+        15.33,
+        15.02,
+        14.97
+      ],
+      "error": null
+    },
+    {
+      "id": "d03",
+      "tier": "two-tool",
+      "correct": false,
+      "answer": "15750 euro",
+      "expected": "4375",
+      "llm_calls": 3,
+      "parse_retries": 0,
+      "steps": 3,
+      "prompt_tokens": 1925,
+      "completion_tokens": 194,
+      "wall_s": 12.85391259699827,
+      "ttft_ms": [
+        86.54,
+        89.17,
+        89.85
+      ],
+      "decode_tps": [
+        15.34,
+        14.92,
+        14.98
+      ],
+      "error": null
+    },
+    {
+      "id": "d04",
+      "tier": "two-tool",
+      "correct": false,
+      "answer": null,
+      "expected": "23000",
+      "llm_calls": 8,
+      "parse_retries": 0,
+      "steps": 8,
+      "prompt_tokens": 9378,
+      "completion_tokens": 341,
+      "wall_s": 24.574148812011117,
+      "ttft_ms": [
+        86.96,
+        98.96,
+        99.71,
+        102.01,
+        103.42,
+        95.48,
+        93.56,
+        100.23
+      ],
+      "decode_tps": [
+        14.87,
+        12.85,
+        12.77,
+        12.84,
+        12.81,
+        14.62,
+        14.96,
+        14.79
+      ],
+      "error": "hit the 8-step limit without answering"
+    },
+    {
+      "id": "d05",
+      "tier": "two-tool",
+      "correct": false,
+      "answer": null,
+      "expected": "10800",
+      "llm_calls": 8,
+      "parse_retries": 0,
+      "steps": 8,
+      "prompt_tokens": 9727,
+      "completion_tokens": 349,
+      "wall_s": 26.09994947598898,
+      "ttft_ms": [
+        86.95,
+        98.94,
+        100.07,
+        116.9,
+        103.56,
+        101.63,
+        102.15,
+        102.8
+      ],
+      "decode_tps": [
+        14.78,
+        12.68,
+        12.89,
+        13.17,
+        12.88,
+        13.09,
+        13.07,
+        12.86
+      ],
+      "error": "hit the 8-step limit without answering"
+    },
+    {
+      "id": "d06",
+      "tier": "two-tool",
+      "correct": false,
+      "answer": null,
+      "expected": "472.5",
+      "llm_calls": 8,
+      "parse_retries": 0,
+      "steps": 8,
+      "prompt_tokens": 9980,
+      "completion_tokens": 338,
+      "wall_s": 25.961423934990307,
+      "ttft_ms": [
+        95.95,
+        97.45,
+        98.97,
+        100.47,
+        103.82,
+        105.02,
+        101.82,
+        103.35
+      ],
+      "decode_tps": [
+        13.39,
+        12.93,
+        13.09,
+        13.08,
+        13.09,
+        13.1,
+        13.09,
+        13.09
+      ],
+      "error": "hit the 8-step limit without answering"
+    },
+    {
+      "id": "d07",
+      "tier": "two-tool",
+      "correct": false,
+      "answer": "9450 euro",
+      "expected": "304.2",
+      "llm_calls": 4,
+      "parse_retries": 0,
+      "steps": 4,
+      "prompt_tokens": 3233,
+      "completion_tokens": 283,
+      "wall_s": 21.316544394998346,
+      "ttft_ms": [
+        95.69,
+        97.38,
+        98.49,
+        98.79
+      ],
+      "decode_tps": [
+        13.5,
+        13.08,
+        13.06,
+        12.98
+      ],
+      "error": null
+    },
+    {
+      "id": "d08",
+      "tier": "two-tool",
+      "correct": false,
+      "answer": null,
+      "expected": "26250",
+      "llm_calls": 8,
+      "parse_retries": 0,
+      "steps": 8,
+      "prompt_tokens": 9368,
+      "completion_tokens": 393,
+      "wall_s": 30.129370003996883,
+      "ttft_ms": [
+        95.71,
+        97.45,
+        98.72,
+        100.13,
+        101.8,
+        103.2,
+        101.65,
+        102.12
+      ],
+      "decode_tps": [
+        13.34,
+        13.06,
+        13.05,
+        13.05,
+        13.04,
+        13.04,
+        13.01,
+        13.05
+      ],
+      "error": "hit the 8-step limit without answering"
+    },
+    {
+      "id": "m01",
+      "tier": "multi",
+      "correct": false,
+      "answer": null,
+      "expected": "11260",
+      "llm_calls": 8,
+      "parse_retries": 4,
+      "steps": 4,
+      "prompt_tokens": 8691,
+      "completion_tokens": 422,
+      "wall_s": 32.26731342601124,
+      "ttft_ms": [
+        96.34,
+        98.93,
+        100.58,
+        99.16,
+        99.32,
+        100.44,
+        100.31,
+        101.9
+      ],
+      "decode_tps": [
+        13.36,
+        12.99,
+        13.14,
+        13.13,
+        12.99,
+        13.15,
+        13.16,
+        13.14
+      ],
+      "error": "could not parse an action after retries"
+    },
+    {
+      "id": "m02",
+      "tier": "multi",
+      "correct": false,
+      "answer": "120",
+      "expected": "19266",
+      "llm_calls": 5,
+      "parse_retries": 1,
+      "steps": 4,
+      "prompt_tokens": 4682,
+      "completion_tokens": 319,
+      "wall_s": 24.189431058010086,
+      "ttft_ms": [
+        95.79,
+        97.61,
+        100.12,
+        99.25,
+        99.75
+      ],
+      "decode_tps": [
+        13.4,
+        13.14,
+        13.16,
+        13.24,
+        12.88
+      ],
+      "error": null
+    },
+    {
+      "id": "m03",
+      "tier": "multi",
+      "correct": false,
+      "answer": "6,180 euro",
+      "expected": "3805",
+      "llm_calls": 3,
+      "parse_retries": 0,
+      "steps": 3,
+      "prompt_tokens": 1989,
+      "completion_tokens": 276,
+      "wall_s": 20.69723986199824,
+      "ttft_ms": [
+        95.56,
+        97.78,
+        98.05
+      ],
+      "decode_tps": [
+        13.49,
+        13.21,
+        13.13
+      ],
+      "error": null
+    },
+    {
+      "id": "m04",
+      "tier": "multi",
+      "correct": false,
+      "answer": "9450 euro",
+      "expected": "23100",
+      "llm_calls": 4,
+      "parse_retries": 1,
+      "steps": 3,
+      "prompt_tokens": 2845,
+      "completion_tokens": 289,
+      "wall_s": 21.725914941023802,
+      "ttft_ms": [
+        95.37,
+        97.47,
+        99.5,
+        98.38
+      ],
+      "decode_tps": [
+        13.54,
+        13.09,
+        12.73,
+        13.16
+      ],
+      "error": null
+    }
+  ]
+}
