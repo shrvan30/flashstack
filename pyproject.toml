@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "flashstack"
+version = "0.1.0"
+description = "Inference engine, OpenAI-compatible server and agent benchmark built on hand-written FlashAttention CUDA kernels"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+dependencies = [
+    "torch",
+    "transformers",
+    "safetensors",
+    "fastapi",
+    "uvicorn",
+    "sse-starlette",
+    "rank-bm25",
+    "openai",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "ruff",
+]
+
+# flashattn_cuda is deliberately not a hard dependency: it is a source-built CUDA
+# extension that cannot be installed on a machine without a toolchain, and the
+# CPU test suite has to run in CI without one. See README for how to install it.
+[project.urls]
+Homepage = "https://github.com/shrvan30/flashstack"
+Kernels = "https://github.com/shrvan30/flash-attention-cuda"
+
+[tool.setuptools]
+packages = ["engine", "server", "agent", "bench"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "gpu: test requires a CUDA device and the flashattn_cuda extension",
+]
