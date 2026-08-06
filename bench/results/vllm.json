@@ -1,0 +1,982 @@
+{
+  "backend": "vllm",
+  "model": "Qwen/Qwen2.5-0.5B-Instruct",
+  "base_url": "http://127.0.0.1:8001/v1",
+  "stream": true,
+  "suite": {
+    "corpus": "Halden Systems (fictional)",
+    "tasks": 20
+  },
+  "provenance": {
+    "rule": "Published TTFT and decode throughput are the client-side stream measurement on every backend. A server-reported figure is recorded as a cross-check and never substituted into a published column.",
+    "streamed": true,
+    "published": {
+      "ttft_ms": {
+        "n": 74,
+        "sources": {
+          "client-stream": 74
+        },
+        "unique_sources": [
+          "client-stream"
+        ],
+        "mixed": false,
+        "publishable": true
+      },
+      "decode_tps": {
+        "n": 74,
+        "sources": {
+          "client-stream": 74
+        },
+        "unique_sources": [
+          "client-stream"
+        ],
+        "mixed": false,
+        "publishable": true
+      }
+    },
+    "cross_check": {
+      "server_ttft_ms": {
+        "n": 0,
+        "sources": {},
+        "unique_sources": [],
+        "mixed": false,
+        "publishable": false,
+        "p50": 0.0
+      },
+      "server_decode_tps": {
+        "n": 0,
+        "sources": {},
+        "unique_sources": [],
+        "mixed": false,
+        "publishable": false
+      }
+    },
+    "notes": []
+  },
+  "hardware": {
+    "gpu": "NVIDIA GeForce RTX 3090",
+    "driver": "580.126.09",
+    "cuda": "13.0",
+    "torch": "2.11.0+cu130"
+  },
+  "commits": {
+    "flashstack": "4f55f2b",
+    "flash_attention_cuda": "d677d5b"
+  },
+  "results": {
+    "success_rate": 10.0,
+    "correct": 2,
+    "tasks": 20,
+    "llm_calls_total": 74,
+    "llm_calls_per_task": 3.7,
+    "parse_retries_total": 20,
+    "throttle_waits_total": 0,
+    "throttle_s_total": 0.0,
+    "ttft_ms_p50": 24.412352009676397,
+    "ttft_ms_p95": 39.01584597770125,
+    "decode_tps_mean": 273.80501267702243,
+    "task_latency_s_p50": 0.538662321981974,
+    "task_latency_s_p95": 1.8701193209271878,
+    "prompt_tokens": 0,
+    "completion_tokens": 3508,
+    "wall_s_total": 14.95862291904632,
+    "cost_total": 0.0014543105615739476,
+    "cost_per_task": 7.271552807869739e-05,
+    "cost_basis": "wall-clock GPU time at 0.35/hour"
+  },
+  "by_tier": {
+    "multi": {
+      "tasks": 4,
+      "correct": 0,
+      "llm_calls_per_task": 4.5
+    },
+    "single": {
+      "tasks": 8,
+      "correct": 2,
+      "llm_calls_per_task": 3.5
+    },
+    "two-tool": {
+      "tasks": 8,
+      "correct": 0,
+      "llm_calls_per_task": 3.5
+    }
+  },
+  "tasks": [
+    {
+      "id": "s01",
+      "tier": "single",
+      "correct": false,
+      "answer": "325.324",
+      "expected": "1690",
+      "llm_calls": 5,
+      "parse_retries": 0,
+      "throttle_waits": 0,
+      "throttle_s": 0.0,
+      "steps": 5,
+      "prompt_tokens": 0,
+      "completion_tokens": 325,
+      "wall_s": 1.8701193209271878,
+      "ttft_ms": [
+        363.15185599960387,
+        29.147978057153523,
+        26.30429097916931,
+        26.799831073731184,
+        26.879613986238837
+      ],
+      "ttft_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "decode_tps": [
+        287.7566444710767,
+        275.21845162474483,
+        279.002340851118,
+        279.30857366599827,
+        279.0704039481453
+      ],
+      "decode_tps_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "server_ttft_ms": [],
+      "server_ttft_sources": [],
+      "server_decode_tps": [],
+      "server_decode_tps_sources": [],
+      "metric_notes": [],
+      "error": null
+    },
+    {
+      "id": "s02",
+      "tier": "single",
+      "correct": false,
+      "answer": "3150",
+      "expected": "640 by 480",
+      "llm_calls": 2,
+      "parse_retries": 0,
+      "throttle_waits": 0,
+      "throttle_s": 0.0,
+      "steps": 2,
+      "prompt_tokens": 0,
+      "completion_tokens": 80,
+      "wall_s": 0.32478797098156065,
+      "ttft_ms": [
+        20.838306052610278,
+        22.928041988052428
+      ],
+      "ttft_sources": [
+        "client-stream",
+        "client-stream"
+      ],
+      "decode_tps": [
+        278.36934010261086,
+        277.02159340854035
+      ],
+      "decode_tps_sources": [
+        "client-stream",
+        "client-stream"
+      ],
+      "server_ttft_ms": [],
+      "server_ttft_sources": [],
+      "server_decode_tps": [],
+      "server_decode_tps_sources": [],
+      "metric_notes": [],
+      "error": null
+    },
+    {
+      "id": "s03",
+      "tier": "single",
+      "correct": false,
+      "answer": "None",
+      "expected": "one business hour",
+      "llm_calls": 4,
+      "parse_retries": 0,
+      "throttle_waits": 0,
+      "throttle_s": 0.0,
+      "steps": 4,
+      "prompt_tokens": 0,
+      "completion_tokens": 237,
+      "wall_s": 0.9273765300167724,
+      "ttft_ms": [
+        21.512842969968915,
+        22.65310997609049,
+        23.588688927702606,
+        25.327599956654012
+      ],
+      "ttft_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "decode_tps": [
+        278.072782065376,
+        279.9888580281859,
+        280.3339685752981,
+        277.1748404696447
+      ],
+      "decode_tps_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "server_ttft_ms": [],
+      "server_ttft_sources": [],
+      "server_decode_tps": [],
+      "server_decode_tps_sources": [],
+      "metric_notes": [],
+      "error": null
+    },
+    {
+      "id": "s04",
+      "tier": "single",
+      "correct": false,
+      "answer": null,
+      "expected": "24",
+      "llm_calls": 4,
+      "parse_retries": 3,
+      "throttle_waits": 0,
+      "throttle_s": 0.0,
+      "steps": 1,
+      "prompt_tokens": 0,
+      "completion_tokens": 231,
+      "wall_s": 0.9139614650048316,
+      "ttft_ms": [
+        21.49373199790716,
+        24.85321997664869,
+        29.116005054675043,
+        26.15743293426931
+      ],
+      "ttft_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "decode_tps": [
+        281.01685739153726,
+        271.3919707722888,
+        278.684394532469,
+        278.22868080530367
+      ],
+      "decode_tps_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "server_ttft_ms": [],
+      "server_ttft_sources": [],
+      "server_decode_tps": [],
+      "server_decode_tps_sources": [],
+      "metric_notes": [],
+      "error": "could not parse an action after retries"
+    },
+    {
+      "id": "s05",
+      "tier": "single",
+      "correct": false,
+      "answer": null,
+      "expected": "marit osland",
+      "llm_calls": 4,
+      "parse_retries": 3,
+      "throttle_waits": 0,
+      "throttle_s": 0.0,
+      "steps": 1,
+      "prompt_tokens": 0,
+      "completion_tokens": 100,
+      "wall_s": 0.46345939696766436,
+      "ttft_ms": [
+        20.950909005478024,
+        26.882663019932806,
+        24.412352009676397,
+        25.98279493395239
+      ],
+      "ttft_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "decode_tps": [
+        250.48278766695677,
+        277.5024415635739,
+        254.1062351880014,
+        276.75499267810903
+      ],
+      "decode_tps_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "server_ttft_ms": [],
+      "server_ttft_sources": [],
+      "server_decode_tps": [],
+      "server_decode_tps_sources": [],
+      "metric_notes": [],
+      "error": "could not parse an action after retries"
+    },
+    {
+      "id": "s06",
+      "tier": "single",
+      "correct": true,
+      "answer": "Nordkapp Marine",
+      "expected": "nordkapp marine",
+      "llm_calls": 3,
+      "parse_retries": 0,
+      "throttle_waits": 0,
+      "throttle_s": 0.0,
+      "steps": 3,
+      "prompt_tokens": 0,
+      "completion_tokens": 90,
+      "wall_s": 0.4034435129724443,
+      "ttft_ms": [
+        26.215215912088752,
+        24.932012078352273,
+        18.6461650300771
+      ],
+      "ttft_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "decode_tps": [
+        263.079674159042,
+        247.9201052530742,
+        275.2419756876002
+      ],
+      "decode_tps_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "server_ttft_ms": [],
+      "server_ttft_sources": [],
+      "server_decode_tps": [],
+      "server_decode_tps_sources": [],
+      "metric_notes": [],
+      "error": null
+    },
+    {
+      "id": "s07",
+      "tier": "single",
+      "correct": false,
+      "answer": null,
+      "expected": "-6",
+      "llm_calls": 4,
+      "parse_retries": 3,
+      "throttle_waits": 0,
+      "throttle_s": 0.0,
+      "steps": 1,
+      "prompt_tokens": 0,
+      "completion_tokens": 106,
+      "wall_s": 0.47696155589073896,
+      "ttft_ms": [
+        42.15970903169364,
+        17.60981197003275,
+        23.145999992266297,
+        24.36667901929468
+      ],
+      "ttft_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "decode_tps": [
+        278.1618729944762,
+        275.42317340726834,
+        275.5186116275348,
+        275.63219770198816
+      ],
+      "decode_tps_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "server_ttft_ms": [],
+      "server_ttft_sources": [],
+      "server_decode_tps": [],
+      "server_decode_tps_sources": [],
+      "metric_notes": [],
+      "error": "could not parse an action after retries"
+    },
+    {
+      "id": "s08",
+      "tier": "single",
+      "correct": true,
+      "answer": "14880",
+      "expected": "14880",
+      "llm_calls": 2,
+      "parse_retries": 0,
+      "throttle_waits": 0,
+      "throttle_s": 0.0,
+      "steps": 2,
+      "prompt_tokens": 0,
+      "completion_tokens": 62,
+      "wall_s": 0.2603840989759192,
+      "ttft_ms": [
+        20.977930980734527,
+        22.373967920430005
+      ],
+      "ttft_sources": [
+        "client-stream",
+        "client-stream"
+      ],
+      "decode_tps": [
+        277.3045272192555,
+        275.9996616253479
+      ],
+      "decode_tps_sources": [
+        "client-stream",
+        "client-stream"
+      ],
+      "server_ttft_ms": [],
+      "server_ttft_sources": [],
+      "server_decode_tps": [],
+      "server_decode_tps_sources": [],
+      "metric_notes": [],
+      "error": null
+    },
+    {
+      "id": "d01",
+      "tier": "two-tool",
+      "correct": false,
+      "answer": null,
+      "expected": "9450",
+      "llm_calls": 4,
+      "parse_retries": 3,
+      "throttle_waits": 0,
+      "throttle_s": 0.0,
+      "steps": 1,
+      "prompt_tokens": 0,
+      "completion_tokens": 174,
+      "wall_s": 0.7206824250752106,
+      "ttft_ms": [
+        20.91277705039829,
+        25.522487005218863,
+        32.195660984143615,
+        26.78758802358061
+      ],
+      "ttft_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "decode_tps": [
+        278.110143353154,
+        265.0839035620913,
+        279.0107254131091,
+        274.5373632114581
+      ],
+      "decode_tps_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "server_ttft_ms": [],
+      "server_ttft_sources": [],
+      "server_decode_tps": [],
+      "server_decode_tps_sources": [],
+      "metric_notes": [],
+      "error": "could not parse an action after retries"
+    },
+    {
+      "id": "d02",
+      "tier": "two-tool",
+      "correct": false,
+      "answer": null,
+      "expected": "20280",
+      "llm_calls": 8,
+      "parse_retries": 0,
+      "throttle_waits": 0,
+      "throttle_s": 0.0,
+      "steps": 8,
+      "prompt_tokens": 0,
+      "completion_tokens": 413,
+      "wall_s": 1.6648107409710065,
+      "ttft_ms": [
+        20.769921015016735,
+        23.309295065701008,
+        26.077108923345804,
+        24.611438042484224,
+        25.797848007641733,
+        26.52298705652356,
+        28.233616962097585,
+        29.32322199922055
+      ],
+      "ttft_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "decode_tps": [
+        278.6498142958675,
+        269.03800347215616,
+        279.1422906629324,
+        278.279626259096,
+        278.5149398564649,
+        278.50012648315646,
+        278.1513542027617,
+        278.4754750625509
+      ],
+      "decode_tps_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "server_ttft_ms": [],
+      "server_ttft_sources": [],
+      "server_decode_tps": [],
+      "server_decode_tps_sources": [],
+      "metric_notes": [],
+      "error": "hit the 8-step limit without answering"
+    },
+    {
+      "id": "d03",
+      "tier": "two-tool",
+      "correct": false,
+      "answer": "No valid JSON provided.",
+      "expected": "4375",
+      "llm_calls": 2,
+      "parse_retries": 1,
+      "throttle_waits": 0,
+      "throttle_s": 0.0,
+      "steps": 1,
+      "prompt_tokens": 0,
+      "completion_tokens": 93,
+      "wall_s": 0.37157803401350975,
+      "ttft_ms": [
+        21.041803061962128,
+        23.339795996434987
+      ],
+      "ttft_sources": [
+        "client-stream",
+        "client-stream"
+      ],
+      "decode_tps": [
+        279.1243398081717,
+        276.00152275922795
+      ],
+      "decode_tps_sources": [
+        "client-stream",
+        "client-stream"
+      ],
+      "server_ttft_ms": [],
+      "server_ttft_sources": [],
+      "server_decode_tps": [],
+      "server_decode_tps_sources": [],
+      "metric_notes": [],
+      "error": null
+    },
+    {
+      "id": "d04",
+      "tier": "two-tool",
+      "correct": false,
+      "answer": "276000 euro",
+      "expected": "23000",
+      "llm_calls": 3,
+      "parse_retries": 0,
+      "throttle_waits": 0,
+      "throttle_s": 0.0,
+      "steps": 3,
+      "prompt_tokens": 0,
+      "completion_tokens": 175,
+      "wall_s": 0.6895056059584022,
+      "ttft_ms": [
+        21.769511979073286,
+        24.014233029447496,
+        24.265983956865966
+      ],
+      "ttft_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "decode_tps": [
+        280.10902616896294,
+        277.0709764083842,
+        270.2210170319232
+      ],
+      "decode_tps_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "server_ttft_ms": [],
+      "server_ttft_sources": [],
+      "server_decode_tps": [],
+      "server_decode_tps_sources": [],
+      "metric_notes": [],
+      "error": null
+    },
+    {
+      "id": "d05",
+      "tier": "two-tool",
+      "correct": false,
+      "answer": "43200 euro",
+      "expected": "10800",
+      "llm_calls": 3,
+      "parse_retries": 0,
+      "throttle_waits": 0,
+      "throttle_s": 0.0,
+      "steps": 3,
+      "prompt_tokens": 0,
+      "completion_tokens": 260,
+      "wall_s": 1.0362829980440438,
+      "ttft_ms": [
+        21.05623297393322,
+        35.64223798457533,
+        21.225629025138915
+      ],
+      "ttft_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "decode_tps": [
+        263.53694341137304,
+        273.77737712757624,
+        273.2303495034763
+      ],
+      "decode_tps_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "server_ttft_ms": [],
+      "server_ttft_sources": [],
+      "server_decode_tps": [],
+      "server_decode_tps_sources": [],
+      "metric_notes": [],
+      "error": null
+    },
+    {
+      "id": "d06",
+      "tier": "two-tool",
+      "correct": false,
+      "answer": "94405.5 euro",
+      "expected": "472.5",
+      "llm_calls": 2,
+      "parse_retries": 0,
+      "throttle_waits": 0,
+      "throttle_s": 0.0,
+      "steps": 2,
+      "prompt_tokens": 0,
+      "completion_tokens": 68,
+      "wall_s": 0.28661801398266107,
+      "ttft_ms": [
+        25.09532799012959,
+        22.07715401891619
+      ],
+      "ttft_sources": [
+        "client-stream",
+        "client-stream"
+      ],
+      "decode_tps": [
+        275.606475307297,
+        276.57218303130173
+      ],
+      "decode_tps_sources": [
+        "client-stream",
+        "client-stream"
+      ],
+      "server_ttft_ms": [],
+      "server_ttft_sources": [],
+      "server_decode_tps": [],
+      "server_decode_tps_sources": [],
+      "metric_notes": [],
+      "error": null
+    },
+    {
+      "id": "d07",
+      "tier": "two-tool",
+      "correct": false,
+      "answer": "45660 euro",
+      "expected": "304.2",
+      "llm_calls": 3,
+      "parse_retries": 0,
+      "throttle_waits": 0,
+      "throttle_s": 0.0,
+      "steps": 3,
+      "prompt_tokens": 0,
+      "completion_tokens": 180,
+      "wall_s": 0.709241192904301,
+      "ttft_ms": [
+        21.555271930992603,
+        25.6044379202649,
+        25.8029360556975
+      ],
+      "ttft_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "decode_tps": [
+        279.9325386380932,
+        275.984269866478,
+        276.81498067053786
+      ],
+      "decode_tps_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "server_ttft_ms": [],
+      "server_ttft_sources": [],
+      "server_decode_tps": [],
+      "server_decode_tps_sources": [],
+      "metric_notes": [],
+      "error": null
+    },
+    {
+      "id": "d08",
+      "tier": "two-tool",
+      "correct": false,
+      "answer": null,
+      "expected": "26250",
+      "llm_calls": 3,
+      "parse_retries": 3,
+      "throttle_waits": 0,
+      "throttle_s": 0.0,
+      "steps": 0,
+      "prompt_tokens": 0,
+      "completion_tokens": 85,
+      "wall_s": 0.3660766000393778,
+      "ttft_ms": [
+        20.955458050593734,
+        22.063783020712435,
+        26.869280030950904
+      ],
+      "ttft_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "decode_tps": [
+        277.8973488236289,
+        277.6095749109238,
+        274.8166326704571
+      ],
+      "decode_tps_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "server_ttft_ms": [],
+      "server_ttft_sources": [],
+      "server_decode_tps": [],
+      "server_decode_tps_sources": [],
+      "metric_notes": [],
+      "error": "could not parse an action after retries"
+    },
+    {
+      "id": "m01",
+      "tier": "multi",
+      "correct": false,
+      "answer": null,
+      "expected": "11260",
+      "llm_calls": 3,
+      "parse_retries": 3,
+      "throttle_waits": 0,
+      "throttle_s": 0.0,
+      "steps": 0,
+      "prompt_tokens": 0,
+      "completion_tokens": 132,
+      "wall_s": 0.538662321981974,
+      "ttft_ms": [
+        20.872254041023552,
+        27.114160009659827,
+        23.540892987512052
+      ],
+      "ttft_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "decode_tps": [
+        277.74760326082105,
+        276.53444527094763,
+        271.96475769714897
+      ],
+      "decode_tps_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "server_ttft_ms": [],
+      "server_ttft_sources": [],
+      "server_decode_tps": [],
+      "server_decode_tps_sources": [],
+      "metric_notes": [],
+      "error": "could not parse an action after retries"
+    },
+    {
+      "id": "m02",
+      "tier": "multi",
+      "correct": false,
+      "answer": "13405392 euro",
+      "expected": "19266",
+      "llm_calls": 3,
+      "parse_retries": 0,
+      "throttle_waits": 0,
+      "throttle_s": 0.0,
+      "steps": 3,
+      "prompt_tokens": 0,
+      "completion_tokens": 107,
+      "wall_s": 0.4526788090588525,
+      "ttft_ms": [
+        19.312149961479008,
+        25.17408994026482,
+        22.15909701772034
+      ],
+      "ttft_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "decode_tps": [
+        277.2944090669895,
+        277.5546370117064,
+        253.7506969925971
+      ],
+      "decode_tps_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "server_ttft_ms": [],
+      "server_ttft_sources": [],
+      "server_decode_tps": [],
+      "server_decode_tps_sources": [],
+      "metric_notes": [],
+      "error": null
+    },
+    {
+      "id": "m03",
+      "tier": "multi",
+      "correct": false,
+      "answer": null,
+      "expected": "3805",
+      "llm_calls": 9,
+      "parse_retries": 1,
+      "throttle_waits": 0,
+      "throttle_s": 0.0,
+      "steps": 8,
+      "prompt_tokens": 0,
+      "completion_tokens": 477,
+      "wall_s": 1.9858943260041997,
+      "ttft_ms": [
+        19.855152000673115,
+        20.013908972032368,
+        24.99569207429886,
+        29.76749697700143,
+        29.753257054835558,
+        39.01584597770125,
+        38.559606997296214,
+        39.38741993624717,
+        41.147141018882394
+      ],
+      "ttft_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "decode_tps": [
+        269.4740984386778,
+        280.118757643752,
+        275.07241193014704,
+        274.1112318528033,
+        275.60823708373414,
+        272.7314772366665,
+        272.36512779150996,
+        271.18546243787813,
+        271.21024825842807
+      ],
+      "decode_tps_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "server_ttft_ms": [],
+      "server_ttft_sources": [],
+      "server_decode_tps": [],
+      "server_decode_tps_sources": [],
+      "metric_notes": [],
+      "error": "hit the 8-step limit without answering"
+    },
+    {
+      "id": "m04",
+      "tier": "multi",
+      "correct": false,
+      "answer": "13418784 + 13392",
+      "expected": "23100",
+      "llm_calls": 3,
+      "parse_retries": 0,
+      "throttle_waits": 0,
+      "throttle_s": 0.0,
+      "steps": 3,
+      "prompt_tokens": 0,
+      "completion_tokens": 113,
+      "wall_s": 0.494478550972417,
+      "ttft_ms": [
+        20.54449904244393,
+        15.755653963424265,
+        21.119873970746994
+      ],
+      "ttft_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "decode_tps": [
+        245.41799303774206,
+        264.13255183777636,
+        247.72951179315638
+      ],
+      "decode_tps_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "server_ttft_ms": [],
+      "server_ttft_sources": [],
+      "server_decode_tps": [],
+      "server_decode_tps_sources": [],
+      "metric_notes": [],
+      "error": null
+    }
+  ]
+}
