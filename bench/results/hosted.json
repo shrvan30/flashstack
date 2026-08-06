@@ -1,0 +1,930 @@
+{
+  "backend": "hosted",
+  "model": "llama-3.3-70b-versatile",
+  "base_url": "https://api.groq.com/openai/v1",
+  "stream": true,
+  "suite": {
+    "corpus": "Halden Systems (fictional)",
+    "tasks": 20
+  },
+  "provenance": {
+    "rule": "Published TTFT and decode throughput are the client-side stream measurement on every backend. A server-reported figure is recorded as a cross-check and never substituted into a published column.",
+    "streamed": true,
+    "published": {
+      "ttft_ms": {
+        "n": 61,
+        "sources": {
+          "client-stream": 61
+        },
+        "unique_sources": [
+          "client-stream"
+        ],
+        "mixed": false,
+        "publishable": true
+      },
+      "decode_tps": {
+        "n": 61,
+        "sources": {
+          "client-stream": 61
+        },
+        "unique_sources": [
+          "client-stream"
+        ],
+        "mixed": false,
+        "publishable": true
+      }
+    },
+    "cross_check": {
+      "server_ttft_ms": {
+        "n": 0,
+        "sources": {},
+        "unique_sources": [],
+        "mixed": false,
+        "publishable": false,
+        "p50": 0.0
+      },
+      "server_decode_tps": {
+        "n": 0,
+        "sources": {},
+        "unique_sources": [],
+        "mixed": false,
+        "publishable": false
+      }
+    },
+    "notes": []
+  },
+  "hardware": {
+    "gpu": "NVIDIA GeForce RTX 3090",
+    "driver": "580.126.09",
+    "cuda": "13.0",
+    "torch": "2.11.0+cu130"
+  },
+  "commits": {
+    "flashstack": "2079868",
+    "flash_attention_cuda": "d677d5b"
+  },
+  "results": {
+    "success_rate": 100.0,
+    "correct": 20,
+    "tasks": 20,
+    "llm_calls_total": 61,
+    "llm_calls_per_task": 3.05,
+    "parse_retries_total": 0,
+    "throttle_waits_total": 43,
+    "throttle_s_total": 155.75,
+    "ttft_ms_p50": 233.62265108153224,
+    "ttft_ms_p95": 386.3017939729616,
+    "decode_tps_mean": 523.4182799038824,
+    "task_latency_s_p50": 1.3403399010421708,
+    "task_latency_s_p95": 3.2842967320466414,
+    "prompt_tokens": 43824,
+    "completion_tokens": 1997,
+    "wall_s_total": 27.365037315059453,
+    "cost_total": 0.02743379,
+    "cost_per_task": 0.0013716894999999999,
+    "cost_basis": "token pricing (0.59/Mtok in, 0.79/Mtok out)"
+  },
+  "by_tier": {
+    "multi": {
+      "tasks": 4,
+      "correct": 4,
+      "llm_calls_per_task": 5.0
+    },
+    "single": {
+      "tasks": 8,
+      "correct": 8,
+      "llm_calls_per_task": 2.0
+    },
+    "two-tool": {
+      "tasks": 8,
+      "correct": 8,
+      "llm_calls_per_task": 3.125
+    }
+  },
+  "tasks": [
+    {
+      "id": "s01",
+      "tier": "single",
+      "correct": true,
+      "answer": "1690 euro",
+      "expected": "1690",
+      "llm_calls": 2,
+      "parse_retries": 0,
+      "throttle_waits": 0,
+      "throttle_s": 0.0,
+      "steps": 2,
+      "prompt_tokens": 1227,
+      "completion_tokens": 61,
+      "wall_s": 1.1742373489541933,
+      "ttft_ms": [
+        556.2527140136808,
+        235.52756302524358
+      ],
+      "ttft_sources": [
+        "client-stream",
+        "client-stream"
+      ],
+      "decode_tps": [
+        529.3443861563723,
+        324.05112051787773
+      ],
+      "decode_tps_sources": [
+        "client-stream",
+        "client-stream"
+      ],
+      "server_ttft_ms": [],
+      "server_ttft_sources": [],
+      "server_decode_tps": [],
+      "server_decode_tps_sources": [],
+      "metric_notes": [],
+      "error": null
+    },
+    {
+      "id": "s02",
+      "tier": "single",
+      "correct": true,
+      "answer": "640 by 480 pixels",
+      "expected": "640 by 480",
+      "llm_calls": 2,
+      "parse_retries": 0,
+      "throttle_waits": 0,
+      "throttle_s": 0.0,
+      "steps": 2,
+      "prompt_tokens": 1111,
+      "completion_tokens": 63,
+      "wall_s": 0.7015067840693519,
+      "ttft_ms": [
+        350.27199308387935,
+        237.4896100955084
+      ],
+      "ttft_sources": [
+        "client-stream",
+        "client-stream"
+      ],
+      "decode_tps": [
+        703.0285180058015,
+        427.6387593717672
+      ],
+      "decode_tps_sources": [
+        "client-stream",
+        "client-stream"
+      ],
+      "server_ttft_ms": [],
+      "server_ttft_sources": [],
+      "server_decode_tps": [],
+      "server_decode_tps_sources": [],
+      "metric_notes": [],
+      "error": null
+    },
+    {
+      "id": "s03",
+      "tier": "single",
+      "correct": true,
+      "answer": "one business hour",
+      "expected": "one business hour",
+      "llm_calls": 2,
+      "parse_retries": 0,
+      "throttle_waits": 0,
+      "throttle_s": 0.0,
+      "steps": 2,
+      "prompt_tokens": 1150,
+      "completion_tokens": 66,
+      "wall_s": 0.6950908900471404,
+      "ttft_ms": [
+        224.35307304840535,
+        268.3058379916474
+      ],
+      "ttft_sources": [
+        "client-stream",
+        "client-stream"
+      ],
+      "decode_tps": [
+        238.5566326562327,
+        524.9668342137984
+      ],
+      "decode_tps_sources": [
+        "client-stream",
+        "client-stream"
+      ],
+      "server_ttft_ms": [],
+      "server_ttft_sources": [],
+      "server_decode_tps": [],
+      "server_decode_tps_sources": [],
+      "metric_notes": [],
+      "error": null
+    },
+    {
+      "id": "s04",
+      "tier": "single",
+      "correct": true,
+      "answer": "24 months",
+      "expected": "24",
+      "llm_calls": 2,
+      "parse_retries": 0,
+      "throttle_waits": 0,
+      "throttle_s": 0.0,
+      "steps": 2,
+      "prompt_tokens": 1143,
+      "completion_tokens": 64,
+      "wall_s": 0.546910370932892,
+      "ttft_ms": [
+        212.91057695634663,
+        221.25619708094746
+      ],
+      "ttft_sources": [
+        "client-stream",
+        "client-stream"
+      ],
+      "decode_tps": [
+        587.1532746752232,
+        513.2435957497397
+      ],
+      "decode_tps_sources": [
+        "client-stream",
+        "client-stream"
+      ],
+      "server_ttft_ms": [],
+      "server_ttft_sources": [],
+      "server_decode_tps": [],
+      "server_decode_tps_sources": [],
+      "metric_notes": [],
+      "error": null
+    },
+    {
+      "id": "s05",
+      "tier": "single",
+      "correct": true,
+      "answer": "Marit Osland",
+      "expected": "marit osland",
+      "llm_calls": 2,
+      "parse_retries": 0,
+      "throttle_waits": 0,
+      "throttle_s": 0.0,
+      "steps": 2,
+      "prompt_tokens": 1155,
+      "completion_tokens": 63,
+      "wall_s": 0.6182113229297101,
+      "ttft_ms": [
+        210.95810597762465,
+        302.6359439827502
+      ],
+      "ttft_sources": [
+        "client-stream",
+        "client-stream"
+      ],
+      "decode_tps": [
+        618.156376331574,
+        552.0167014369989
+      ],
+      "decode_tps_sources": [
+        "client-stream",
+        "client-stream"
+      ],
+      "server_ttft_ms": [],
+      "server_ttft_sources": [],
+      "server_decode_tps": [],
+      "server_decode_tps_sources": [],
+      "metric_notes": [],
+      "error": null
+    },
+    {
+      "id": "s06",
+      "tier": "single",
+      "correct": true,
+      "answer": "Nordkapp Marine",
+      "expected": "nordkapp marine",
+      "llm_calls": 2,
+      "parse_retries": 0,
+      "throttle_waits": 0,
+      "throttle_s": 0.0,
+      "steps": 2,
+      "prompt_tokens": 964,
+      "completion_tokens": 60,
+      "wall_s": 0.5167576590320095,
+      "ttft_ms": [
+        219.6537700947374,
+        221.84221702627838
+      ],
+      "ttft_sources": [
+        "client-stream",
+        "client-stream"
+      ],
+      "decode_tps": [
+        782.8632943733896,
+        764.1612012915105
+      ],
+      "decode_tps_sources": [
+        "client-stream",
+        "client-stream"
+      ],
+      "server_ttft_ms": [],
+      "server_ttft_sources": [],
+      "server_decode_tps": [],
+      "server_decode_tps_sources": [],
+      "metric_notes": [],
+      "error": null
+    },
+    {
+      "id": "s07",
+      "tier": "single",
+      "correct": true,
+      "answer": "-6",
+      "expected": "-6",
+      "llm_calls": 2,
+      "parse_retries": 0,
+      "throttle_waits": 0,
+      "throttle_s": 0.0,
+      "steps": 2,
+      "prompt_tokens": 929,
+      "completion_tokens": 56,
+      "wall_s": 0.6270723569905385,
+      "ttft_ms": [
+        219.95695203077048,
+        232.2783429408446
+      ],
+      "ttft_sources": [
+        "client-stream",
+        "client-stream"
+      ],
+      "decode_tps": [
+        294.8269271427585,
+        328.2648540067975
+      ],
+      "decode_tps_sources": [
+        "client-stream",
+        "client-stream"
+      ],
+      "server_ttft_ms": [],
+      "server_ttft_sources": [],
+      "server_decode_tps": [],
+      "server_decode_tps_sources": [],
+      "metric_notes": [],
+      "error": null
+    },
+    {
+      "id": "s08",
+      "tier": "single",
+      "correct": true,
+      "answer": "14880",
+      "expected": "14880",
+      "llm_calls": 2,
+      "parse_retries": 0,
+      "throttle_waits": 0,
+      "throttle_s": 0.0,
+      "steps": 2,
+      "prompt_tokens": 897,
+      "completion_tokens": 58,
+      "wall_s": 0.530687366030179,
+      "ttft_ms": [
+        221.85063501819968,
+        229.69176701735705
+      ],
+      "ttft_sources": [
+        "client-stream",
+        "client-stream"
+      ],
+      "decode_tps": [
+        1103.4899730532172,
+        514.9065344256968
+      ],
+      "decode_tps_sources": [
+        "client-stream",
+        "client-stream"
+      ],
+      "server_ttft_ms": [],
+      "server_ttft_sources": [],
+      "server_decode_tps": [],
+      "server_decode_tps_sources": [],
+      "metric_notes": [],
+      "error": null
+    },
+    {
+      "id": "d01",
+      "tier": "two-tool",
+      "correct": true,
+      "answer": "9450 euro",
+      "expected": "9450",
+      "llm_calls": 3,
+      "parse_retries": 0,
+      "throttle_waits": 1,
+      "throttle_s": 3.25,
+      "steps": 3,
+      "prompt_tokens": 2105,
+      "completion_tokens": 84,
+      "wall_s": 0.9655908750137314,
+      "ttft_ms": [
+        221.32526303175837,
+        247.30205698870122,
+        233.62265108153224
+      ],
+      "ttft_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "decode_tps": [
+        789.9917521899002,
+        510.15307495007494,
+        872.2776554709144
+      ],
+      "decode_tps_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "server_ttft_ms": [],
+      "server_ttft_sources": [],
+      "server_decode_tps": [],
+      "server_decode_tps_sources": [],
+      "metric_notes": [],
+      "error": null
+    },
+    {
+      "id": "d02",
+      "tier": "two-tool",
+      "correct": true,
+      "answer": "20280 euro",
+      "expected": "20280",
+      "llm_calls": 3,
+      "parse_retries": 0,
+      "throttle_waits": 3,
+      "throttle_s": 9.75,
+      "steps": 3,
+      "prompt_tokens": 2125,
+      "completion_tokens": 88,
+      "wall_s": 1.312427183962427,
+      "ttft_ms": [
+        221.82781295850873,
+        220.85750300902873,
+        226.11026000231504
+      ],
+      "ttft_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "decode_tps": [
+        467.57418371300287,
+        274.728083434243,
+        522.0434703711676
+      ],
+      "decode_tps_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "server_ttft_ms": [],
+      "server_ttft_sources": [],
+      "server_decode_tps": [],
+      "server_decode_tps_sources": [],
+      "metric_notes": [],
+      "error": null
+    },
+    {
+      "id": "d03",
+      "tier": "two-tool",
+      "correct": true,
+      "answer": "4375 euro",
+      "expected": "4375",
+      "llm_calls": 3,
+      "parse_retries": 0,
+      "throttle_waits": 3,
+      "throttle_s": 9.75,
+      "steps": 3,
+      "prompt_tokens": 2109,
+      "completion_tokens": 84,
+      "wall_s": 1.3403399010421708,
+      "ttft_ms": [
+        199.85675998032093,
+        220.1773429987952,
+        328.74768297187984
+      ],
+      "ttft_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "decode_tps": [
+        647.5637517798527,
+        383.12431658401493,
+        873.3190316283901
+      ],
+      "decode_tps_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "server_ttft_ms": [],
+      "server_ttft_sources": [],
+      "server_decode_tps": [],
+      "server_decode_tps_sources": [],
+      "metric_notes": [],
+      "error": null
+    },
+    {
+      "id": "d04",
+      "tier": "two-tool",
+      "correct": true,
+      "answer": "23,000 euro",
+      "expected": "23000",
+      "llm_calls": 3,
+      "parse_retries": 0,
+      "throttle_waits": 3,
+      "throttle_s": 8.75,
+      "steps": 3,
+      "prompt_tokens": 1962,
+      "completion_tokens": 108,
+      "wall_s": 1.3715078870300204,
+      "ttft_ms": [
+        222.767514991574,
+        324.81486804317683,
+        208.64368800539523
+      ],
+      "ttft_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "decode_tps": [
+        563.7572053709679,
+        517.2623931496956,
+        630.2975980144961
+      ],
+      "decode_tps_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "server_ttft_ms": [],
+      "server_ttft_sources": [],
+      "server_decode_tps": [],
+      "server_decode_tps_sources": [],
+      "metric_notes": [],
+      "error": null
+    },
+    {
+      "id": "d05",
+      "tier": "two-tool",
+      "correct": true,
+      "answer": "10800 euro",
+      "expected": "10800",
+      "llm_calls": 3,
+      "parse_retries": 0,
+      "throttle_waits": 3,
+      "throttle_s": 8.75,
+      "steps": 3,
+      "prompt_tokens": 1894,
+      "completion_tokens": 88,
+      "wall_s": 1.3572164180222899,
+      "ttft_ms": [
+        270.49306605476886,
+        209.72175302449614,
+        211.68286993633956
+      ],
+      "ttft_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "decode_tps": [
+        383.92858005407857,
+        623.5751730961882,
+        282.61717645171854
+      ],
+      "decode_tps_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "server_ttft_ms": [],
+      "server_ttft_sources": [],
+      "server_decode_tps": [],
+      "server_decode_tps_sources": [],
+      "metric_notes": [],
+      "error": null
+    },
+    {
+      "id": "d06",
+      "tier": "two-tool",
+      "correct": true,
+      "answer": "472.50 euro",
+      "expected": "472.5",
+      "llm_calls": 3,
+      "parse_retries": 0,
+      "throttle_waits": 3,
+      "throttle_s": 9.75,
+      "steps": 3,
+      "prompt_tokens": 2110,
+      "completion_tokens": 110,
+      "wall_s": 1.3823537100106478,
+      "ttft_ms": [
+        312.1538460254669,
+        218.6042049434036,
+        223.19911199156195
+      ],
+      "ttft_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "decode_tps": [
+        592.9190430090259,
+        491.015955699582,
+        537.4941935243514
+      ],
+      "decode_tps_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "server_ttft_ms": [],
+      "server_ttft_sources": [],
+      "server_decode_tps": [],
+      "server_decode_tps_sources": [],
+      "metric_notes": [],
+      "error": null
+    },
+    {
+      "id": "d07",
+      "tier": "two-tool",
+      "correct": true,
+      "answer": "304.2 euro",
+      "expected": "304.2",
+      "llm_calls": 3,
+      "parse_retries": 0,
+      "throttle_waits": 3,
+      "throttle_s": 9.75,
+      "steps": 3,
+      "prompt_tokens": 2137,
+      "completion_tokens": 111,
+      "wall_s": 1.4558895619120449,
+      "ttft_ms": [
+        211.12704393453896,
+        328.59916100278497,
+        288.5702509665862
+      ],
+      "ttft_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "decode_tps": [
+        701.3305679269148,
+        558.5405012122255,
+        682.1069875136523
+      ],
+      "decode_tps_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "server_ttft_ms": [],
+      "server_ttft_sources": [],
+      "server_decode_tps": [],
+      "server_decode_tps_sources": [],
+      "metric_notes": [],
+      "error": null
+    },
+    {
+      "id": "d08",
+      "tier": "two-tool",
+      "correct": true,
+      "answer": "30 units, 26250 euro",
+      "expected": "26250",
+      "llm_calls": 4,
+      "parse_retries": 0,
+      "throttle_waits": 4,
+      "throttle_s": 13.0,
+      "steps": 4,
+      "prompt_tokens": 2922,
+      "completion_tokens": 133,
+      "wall_s": 2.262625220930204,
+      "ttft_ms": [
+        312.76702298782766,
+        316.51219993364066,
+        447.34241894911975,
+        270.4606771003455
+      ],
+      "ttft_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "decode_tps": [
+        542.0458010669452,
+        537.1822218011674,
+        303.3601824113759,
+        335.317439843816
+      ],
+      "decode_tps_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "server_ttft_ms": [],
+      "server_ttft_sources": [],
+      "server_decode_tps": [],
+      "server_decode_tps_sources": [],
+      "metric_notes": [],
+      "error": null
+    },
+    {
+      "id": "m01",
+      "tier": "multi",
+      "correct": true,
+      "answer": "11260 euro",
+      "expected": "11260",
+      "llm_calls": 4,
+      "parse_retries": 0,
+      "throttle_waits": 4,
+      "throttle_s": 14.0,
+      "steps": 4,
+      "prompt_tokens": 2974,
+      "completion_tokens": 151,
+      "wall_s": 2.0818545990623534,
+      "ttft_ms": [
+        202.25477300118655,
+        215.0285909883678,
+        386.3017939729616,
+        327.9992409516126
+      ],
+      "ttft_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "decode_tps": [
+        483.97947554440395,
+        645.6195538682301,
+        369.60769190185556,
+        645.314415879405
+      ],
+      "decode_tps_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "server_ttft_ms": [],
+      "server_ttft_sources": [],
+      "server_decode_tps": [],
+      "server_decode_tps_sources": [],
+      "metric_notes": [],
+      "error": null
+    },
+    {
+      "id": "m02",
+      "tier": "multi",
+      "correct": true,
+      "answer": "19266 euro",
+      "expected": "19266",
+      "llm_calls": 7,
+      "parse_retries": 0,
+      "throttle_waits": 7,
+      "throttle_s": 33.75,
+      "steps": 7,
+      "prompt_tokens": 7200,
+      "completion_tokens": 228,
+      "wall_s": 3.697352849994786,
+      "ttft_ms": [
+        304.67918899375945,
+        309.0102670248598,
+        273.55255594011396,
+        335.54336708039045,
+        263.0691959057003,
+        260.0904529681429,
+        352.08440700080246
+      ],
+      "ttft_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "decode_tps": [
+        526.5219450156625,
+        653.8943661416627,
+        466.6111314797513,
+        416.10728609009556,
+        458.38474779199487,
+        638.6513241817294,
+        441.25372471146466
+      ],
+      "decode_tps_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "server_ttft_ms": [],
+      "server_ttft_sources": [],
+      "server_decode_tps": [],
+      "server_decode_tps_sources": [],
+      "metric_notes": [],
+      "error": null
+    },
+    {
+      "id": "m03",
+      "tier": "multi",
+      "correct": true,
+      "answer": "3805 euro",
+      "expected": "3805",
+      "llm_calls": 3,
+      "parse_retries": 0,
+      "throttle_waits": 3,
+      "throttle_s": 9.75,
+      "steps": 3,
+      "prompt_tokens": 2149,
+      "completion_tokens": 118,
+      "wall_s": 1.4410725469933823,
+      "ttft_ms": [
+        206.9463370135054,
+        214.68358300626278,
+        229.18059397488832
+      ],
+      "ttft_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "decode_tps": [
+        388.7621525751238,
+        437.273323046474,
+        230.1509111262604
+      ],
+      "decode_tps_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "server_ttft_ms": [],
+      "server_ttft_sources": [],
+      "server_decode_tps": [],
+      "server_decode_tps_sources": [],
+      "metric_notes": [],
+      "error": null
+    },
+    {
+      "id": "m04",
+      "tier": "multi",
+      "correct": true,
+      "answer": "23100 euro",
+      "expected": "23100",
+      "llm_calls": 6,
+      "parse_retries": 0,
+      "throttle_waits": 6,
+      "throttle_s": 25.5,
+      "steps": 6,
+      "prompt_tokens": 5561,
+      "completion_tokens": 203,
+      "wall_s": 3.2842967320466414,
+      "ttft_ms": [
+        196.80093601346016,
+        203.59964796807617,
+        332.86948094610125,
+        450.91237500309944,
+        378.803052008152,
+        370.1821709983051
+      ],
+      "ttft_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "decode_tps": [
+        314.57291280004046,
+        599.9637615403639,
+        465.9364876581087,
+        323.60754592352146,
+        474.0356851314467,
+        518.0713080527128
+      ],
+      "decode_tps_sources": [
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream",
+        "client-stream"
+      ],
+      "server_ttft_ms": [],
+      "server_ttft_sources": [],
+      "server_decode_tps": [],
+      "server_decode_tps_sources": [],
+      "metric_notes": [],
+      "error": null
+    }
+  ]
+}

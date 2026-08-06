@@ -1,0 +1,580 @@
+{
+  "backend": "hosted",
+  "model": "llama-3.3-70b-versatile",
+  "base_url": "https://api.groq.com/openai/v1",
+  "stream": false,
+  "suite": {
+    "corpus": "Halden Systems (fictional)",
+    "tasks": 20
+  },
+  "hardware": {
+    "gpu": "NVIDIA GeForce RTX 3090",
+    "driver": "570.172.08",
+    "cuda": "12.8",
+    "torch": "2.11.0+cu128"
+  },
+  "commits": {
+    "flashstack": "6803f14",
+    "flash_attention_cuda": "607f24f"
+  },
+  "results": {
+    "success_rate": 100.0,
+    "correct": 20,
+    "tasks": 20,
+    "llm_calls_total": 60,
+    "llm_calls_per_task": 3.0,
+    "parse_retries_total": 0,
+    "throttle_waits_total": 38,
+    "throttle_s_total": 135.5,
+    "ttft_ms_p50": 367.2292870032834,
+    "ttft_ms_p95": 499.9693540012231,
+    "decode_tps_mean": 89.51720293858237,
+    "task_latency_s_p50": 1.4828395950025879,
+    "task_latency_s_p95": 2.6684697099990444,
+    "prompt_tokens": 42495,
+    "completion_tokens": 1986,
+    "wall_s_total": 29.025604059002944,
+    "cost_total": 0.0,
+    "cost_per_task": 0.0,
+    "cost_basis": "token pricing (0.0/Mtok in, 0.0/Mtok out)"
+  },
+  "by_tier": {
+    "multi": {
+      "tasks": 4,
+      "correct": 4,
+      "llm_calls_per_task": 4.75
+    },
+    "single": {
+      "tasks": 8,
+      "correct": 8,
+      "llm_calls_per_task": 2.0
+    },
+    "two-tool": {
+      "tasks": 8,
+      "correct": 8,
+      "llm_calls_per_task": 3.125
+    }
+  },
+  "tasks": [
+    {
+      "id": "s01",
+      "tier": "single",
+      "correct": true,
+      "answer": "1690 euro",
+      "expected": "1690",
+      "llm_calls": 2,
+      "parse_retries": 0,
+      "throttle_waits": 0,
+      "throttle_s": 0.0,
+      "steps": 2,
+      "prompt_tokens": 1225,
+      "completion_tokens": 58,
+      "wall_s": 1.4828395950025879,
+      "ttft_ms": [
+        880.1033850031672,
+        437.2824890015181
+      ],
+      "decode_tps": [
+        34.086904460539074,
+        64.03183457891174
+      ],
+      "error": null
+    },
+    {
+      "id": "s02",
+      "tier": "single",
+      "correct": true,
+      "answer": "640 by 480 pixels",
+      "expected": "640 by 480",
+      "llm_calls": 2,
+      "parse_retries": 0,
+      "throttle_waits": 0,
+      "throttle_s": 0.0,
+      "steps": 2,
+      "prompt_tokens": 1110,
+      "completion_tokens": 62,
+      "wall_s": 0.8465158100007102,
+      "ttft_ms": [
+        400.4773619963089,
+        445.66952300374396
+      ],
+      "decode_tps": [
+        79.90464140216478,
+        67.31445264151029
+      ],
+      "error": null
+    },
+    {
+      "id": "s03",
+      "tier": "single",
+      "correct": true,
+      "answer": "one business hour",
+      "expected": "one business hour",
+      "llm_calls": 2,
+      "parse_retries": 0,
+      "throttle_waits": 0,
+      "throttle_s": 0.0,
+      "steps": 2,
+      "prompt_tokens": 1144,
+      "completion_tokens": 60,
+      "wall_s": 0.8043407560035121,
+      "ttft_ms": [
+        345.26493299927097,
+        458.64466499187984
+      ],
+      "decode_tps": [
+        86.88979717515461,
+        65.41011438676854
+      ],
+      "error": null
+    },
+    {
+      "id": "s04",
+      "tier": "single",
+      "correct": true,
+      "answer": "24 months",
+      "expected": "24",
+      "llm_calls": 2,
+      "parse_retries": 0,
+      "throttle_waits": 0,
+      "throttle_s": 0.0,
+      "steps": 2,
+      "prompt_tokens": 1143,
+      "completion_tokens": 64,
+      "wall_s": 0.8049048009997932,
+      "ttft_ms": [
+        474.94296699005645,
+        329.25173100375105
+      ],
+      "decode_tps": [
+        75.79857478077722,
+        85.04131448190019
+      ],
+      "error": null
+    },
+    {
+      "id": "s05",
+      "tier": "single",
+      "correct": true,
+      "answer": "Marit Osland",
+      "expected": "marit osland",
+      "llm_calls": 2,
+      "parse_retries": 0,
+      "throttle_waits": 0,
+      "throttle_s": 0.0,
+      "steps": 2,
+      "prompt_tokens": 1155,
+      "completion_tokens": 63,
+      "wall_s": 0.6071576499962248,
+      "ttft_ms": [
+        271.076336997794,
+        335.6636329990579
+      ],
+      "decode_tps": [
+        125.42592384327774,
+        86.39601419103211
+      ],
+      "error": null
+    },
+    {
+      "id": "s06",
+      "tier": "single",
+      "correct": true,
+      "answer": "Nordkapp Marine",
+      "expected": "nordkapp marine",
+      "llm_calls": 2,
+      "parse_retries": 0,
+      "throttle_waits": 0,
+      "throttle_s": 0.0,
+      "steps": 2,
+      "prompt_tokens": 964,
+      "completion_tokens": 60,
+      "wall_s": 0.7351556100038579,
+      "ttft_ms": [
+        367.08356998860836,
+        367.84788299701177
+      ],
+      "decode_tps": [
+        87.17361008827785,
+        76.1184209403958
+      ],
+      "error": null
+    },
+    {
+      "id": "s07",
+      "tier": "single",
+      "correct": true,
+      "answer": "-6 degrees Celsius",
+      "expected": "-6",
+      "llm_calls": 2,
+      "parse_retries": 0,
+      "throttle_waits": 0,
+      "throttle_s": 0.0,
+      "steps": 2,
+      "prompt_tokens": 929,
+      "completion_tokens": 56,
+      "wall_s": 0.6479218210006366,
+      "ttft_ms": [
+        340.35491799295414,
+        307.2213430132251
+      ],
+      "decode_tps": [
+        88.14328341987127,
+        84.6295369488075
+      ],
+      "error": null
+    },
+    {
+      "id": "s08",
+      "tier": "single",
+      "correct": true,
+      "answer": "14880",
+      "expected": "14880",
+      "llm_calls": 2,
+      "parse_retries": 0,
+      "throttle_waits": 0,
+      "throttle_s": 0.0,
+      "steps": 2,
+      "prompt_tokens": 897,
+      "completion_tokens": 58,
+      "wall_s": 0.5357748139940668,
+      "ttft_ms": [
+        252.59726199146826,
+        282.7557459968375
+      ],
+      "decode_tps": [
+        118.76613294808114,
+        99.02539699516193
+      ],
+      "error": null
+    },
+    {
+      "id": "d01",
+      "tier": "two-tool",
+      "correct": true,
+      "answer": "9450 euro",
+      "expected": "9450",
+      "llm_calls": 3,
+      "parse_retries": 0,
+      "throttle_waits": 0,
+      "throttle_s": 0.0,
+      "steps": 3,
+      "prompt_tokens": 2105,
+      "completion_tokens": 84,
+      "wall_s": 1.0173730300011812,
+      "ttft_ms": [
+        402.7798759925645,
+        296.75609100377187,
+        317.0501419954235
+      ],
+      "decode_tps": [
+        74.48237061514418,
+        97.72335220452611,
+        78.85188078660715
+      ],
+      "error": null
+    },
+    {
+      "id": "d02",
+      "tier": "two-tool",
+      "correct": true,
+      "answer": "20280 euro",
+      "expected": "20280",
+      "llm_calls": 3,
+      "parse_retries": 0,
+      "throttle_waits": 0,
+      "throttle_s": 0.0,
+      "steps": 3,
+      "prompt_tokens": 2125,
+      "completion_tokens": 88,
+      "wall_s": 1.013909708999563,
+      "ttft_ms": [
+        301.07606000092346,
+        316.49715099774767,
+        395.5007280019345
+      ],
+      "decode_tps": [
+        112.92827466885183,
+        91.62799699326955,
+        63.21100880471128
+      ],
+      "error": null
+    },
+    {
+      "id": "d03",
+      "tier": "two-tool",
+      "correct": true,
+      "answer": "4375 euro",
+      "expected": "4375",
+      "llm_calls": 3,
+      "parse_retries": 0,
+      "throttle_waits": 3,
+      "throttle_s": 9.75,
+      "steps": 3,
+      "prompt_tokens": 2109,
+      "completion_tokens": 84,
+      "wall_s": 1.5547125390003202,
+      "ttft_ms": [
+        402.55264200095553,
+        335.7116960105486,
+        349.8577169957571
+      ],
+      "decode_tps": [
+        77.00856177693753,
+        83.404898705466,
+        71.45762058552275
+      ],
+      "error": null
+    },
+    {
+      "id": "d04",
+      "tier": "two-tool",
+      "correct": true,
+      "answer": "23000 euro",
+      "expected": "23000",
+      "llm_calls": 3,
+      "parse_retries": 0,
+      "throttle_waits": 3,
+      "throttle_s": 8.75,
+      "steps": 3,
+      "prompt_tokens": 1962,
+      "completion_tokens": 107,
+      "wall_s": 1.4848078040085966,
+      "ttft_ms": [
+        397.3188009986188,
+        343.0179590068292,
+        301.66432600526605
+      ],
+      "decode_tps": [
+        72.9892467386682,
+        142.8496634458269,
+        96.13334259316349
+      ],
+      "error": null
+    },
+    {
+      "id": "d05",
+      "tier": "two-tool",
+      "correct": true,
+      "answer": "10800 euro",
+      "expected": "10800",
+      "llm_calls": 3,
+      "parse_retries": 0,
+      "throttle_waits": 3,
+      "throttle_s": 7.75,
+      "steps": 3,
+      "prompt_tokens": 1689,
+      "completion_tokens": 97,
+      "wall_s": 1.6966628520021914,
+      "ttft_ms": [
+        381.73711599665694,
+        471.2683539983118,
+        402.80535799684003
+      ],
+      "decode_tps": [
+        78.5881140262576,
+        80.63346430457779,
+        71.9950701356547
+      ],
+      "error": null
+    },
+    {
+      "id": "d06",
+      "tier": "two-tool",
+      "correct": true,
+      "answer": "472.50 euro",
+      "expected": "472.5",
+      "llm_calls": 3,
+      "parse_retries": 0,
+      "throttle_waits": 3,
+      "throttle_s": 8.75,
+      "steps": 3,
+      "prompt_tokens": 2110,
+      "completion_tokens": 110,
+      "wall_s": 1.8811701800004812,
+      "ttft_ms": [
+        400.3205639892258,
+        672.581981998519,
+        329.4999479985563
+      ],
+      "decode_tps": [
+        97.42192509763161,
+        55.01188106475542,
+        103.18666271883288
+      ],
+      "error": null
+    },
+    {
+      "id": "d07",
+      "tier": "two-tool",
+      "correct": true,
+      "answer": "304.2 euro",
+      "expected": "304.2",
+      "llm_calls": 3,
+      "parse_retries": 0,
+      "throttle_waits": 3,
+      "throttle_s": 9.75,
+      "steps": 3,
+      "prompt_tokens": 2137,
+      "completion_tokens": 111,
+      "wall_s": 1.5805577730061486,
+      "ttft_ms": [
+        461.3877730007516,
+        332.2993830079213,
+        342.69493901229
+      ],
+      "decode_tps": [
+        82.36022327348951,
+        114.35471127279874,
+        102.13165126067065
+      ],
+      "error": null
+    },
+    {
+      "id": "d08",
+      "tier": "two-tool",
+      "correct": true,
+      "answer": "30 units, 26250 euro",
+      "expected": "26250",
+      "llm_calls": 4,
+      "parse_retries": 0,
+      "throttle_waits": 4,
+      "throttle_s": 14.0,
+      "steps": 4,
+      "prompt_tokens": 2922,
+      "completion_tokens": 133,
+      "wall_s": 1.9048825210047653,
+      "ttft_ms": [
+        281.0343540040776,
+        317.35875199956354,
+        343.6836519977078,
+        354.6298869914608
+      ],
+      "decode_tps": [
+        106.74851516396718,
+        119.73830802073567,
+        87.28957524054734,
+        98.69444534674194
+      ],
+      "error": null
+    },
+    {
+      "id": "m01",
+      "tier": "multi",
+      "correct": true,
+      "answer": "11260 euro",
+      "expected": "11260",
+      "llm_calls": 5,
+      "parse_retries": 0,
+      "throttle_waits": 5,
+      "throttle_s": 22.25,
+      "steps": 5,
+      "prompt_tokens": 4761,
+      "completion_tokens": 182,
+      "wall_s": 2.6684697099990444,
+      "ttft_ms": [
+        305.0278180016903,
+        286.80107899708673,
+        388.7947369948961,
+        430.1258680061437,
+        499.9693540012231
+      ],
+      "decode_tps": [
+        118.02202250222471,
+        125.52254031221996,
+        97.73794854763902,
+        95.3209352184658,
+        62.00380033677857
+      ],
+      "error": null
+    },
+    {
+      "id": "m02",
+      "tier": "multi",
+      "correct": true,
+      "answer": "19266 euro",
+      "expected": "19266",
+      "llm_calls": 4,
+      "parse_retries": 0,
+      "throttle_waits": 4,
+      "throttle_s": 13.0,
+      "steps": 4,
+      "prompt_tokens": 2998,
+      "completion_tokens": 169,
+      "wall_s": 2.2599359190062387,
+      "ttft_ms": [
+        424.8413080058526,
+        442.1158990007825,
+        450.65905000956263,
+        349.60631300054956
+      ],
+      "decode_tps": [
+        101.21426327829597,
+        110.83066705075285,
+        106.5106758623431,
+        82.9504471790085
+      ],
+      "error": null
+    },
+    {
+      "id": "m03",
+      "tier": "multi",
+      "correct": true,
+      "answer": "3805 euro",
+      "expected": "3805",
+      "llm_calls": 3,
+      "parse_retries": 0,
+      "throttle_waits": 3,
+      "throttle_s": 9.75,
+      "steps": 3,
+      "prompt_tokens": 2149,
+      "completion_tokens": 118,
+      "wall_s": 1.4123582570027793,
+      "ttft_ms": [
+        299.4591080059763,
+        367.2292870032834,
+        301.3009979913477
+      ],
+      "decode_tps": [
+        143.59222628533925,
+        130.7085292453018,
+        89.6113858898514
+      ],
+      "error": null
+    },
+    {
+      "id": "m04",
+      "tier": "multi",
+      "correct": true,
+      "answer": "23100 euro",
+      "expected": "23100",
+      "llm_calls": 7,
+      "parse_retries": 0,
+      "throttle_waits": 7,
+      "throttle_s": 31.75,
+      "steps": 7,
+      "prompt_tokens": 6861,
+      "completion_tokens": 222,
+      "wall_s": 4.083986319004907,
+      "ttft_ms": [
+        397.2188490006374,
+        388.38226300140377,
+        344.1757809923729,
+        463.159438004368,
+        445.0924120028503,
+        457.6253080012975,
+        535.5633989966009
+      ],
+      "decode_tps": [
+        75.52511688575952,
+        97.84174927644071,
+        81.35377776805421,
+        69.090678876975,
+        74.14190651218891,
+        69.92620259522288,
+        54.148584564092026
+      ],
+      "error": null
+    }
+  ]
+}

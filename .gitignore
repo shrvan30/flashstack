@@ -51,12 +51,27 @@ cover/
 # =========================================================
 
 .env
+.env.*
+*.env
 .venv
 env/
 venv/
 ENV/
 env.bak/
 venv.bak/
+
+# =========================================================
+# Credentials — never in the repo, in any form
+# =========================================================
+# Secrets reach this project through the environment only. These patterns are a
+# backstop so a stray key file cannot be staged by a wildcard add.
+
+.git-credentials
+*.pem
+*.key
+*_token
+*_secret
+credentials.json
 
 # =========================================================
 # Type checkers / linters

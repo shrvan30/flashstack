@@ -12,6 +12,14 @@ routing, no memory, no tool-choice logic beyond parsing what the model asked for
 Retries are counted and reported. A model that needs three attempts to emit valid
 JSON has cost three prefills and three decodes, and that is a real difference
 between backends serving models of different capability.
+
+Throttle waits are a different thing and are counted separately. A hosted
+endpoint on a shared tier can refuse a request outright with a 429; that costs no
+tokens, produces no completion, and says nothing about the backend's speed or the
+model's ability. Scoring it as a task failure would measure the account's quota
+rather than the serving stack, so the loop waits and re-issues instead, and
+subtracts the waiting from the latency it reports. Local backends never emit 429,
+so this path is inert for them and the workload stays identical across all three.
 """
 
 from __future__ import annotations
@@ -29,43 +37,56 @@ from agent.tools.mock_api import call as mock_api_call
 MAX_STEPS = 8
 MAX_RETRIES = 3
 
+# A refused request is re-issued rather than scored, but not forever: past this
+# many consecutive refusals the quota is not going to clear within the run and
+# the honest outcome is an error on the task. No single wait exceeds the length
+# of a per-minute window, since that is the longest a token bucket can take to
+# refill.
+MAX_THROTTLE_RETRIES = 8
+MAX_THROTTLE_WAIT_S = 60.0
+
+# Roughly four characters per token. The conversation is trimmed to stay under
+# this budget because the smallest backend in the comparison serves a 2048-token
+# KV cache, and observations accumulate across up to eight steps. Overflowing it
+# raises a 400 that would score as a task failure caused by the harness rather
+# than by the backend under test. The same budget is applied to every backend so
+# the workload stays identical.
+MAX_CONTEXT_CHARS = 6000
+ELIDED = "[earlier observation omitted to stay within the context window]"
+
 ACTIONS = ("calculator", "doc_search", "mock_api", "final")
 
-SYSTEM_PROMPT = """You are a precise research assistant with three tools.
+SYSTEM_PROMPT = """You answer questions using tools. Reply with ONE JSON object and nothing else.
 
-Reply with ONLY a single JSON object and nothing else. No prose, no markdown, no
-code fences. The object must have exactly these keys:
+{"thought": "<short>", "action": "<doc_search|mock_api|calculator|final>", "action_input": "<string>"}
 
-{"thought": "<one short sentence>", "action": "<calculator|doc_search|mock_api|final>", "action_input": "<string>"}
+- doc_search: Halden Systems prices, policies, company facts. Input: a search phrase.
+- mock_api: orders and weather. Input: "get_order(A-1001)" or "get_weather(Tromso)".
+- calculator: arithmetic. Input: "1240 * 12".
+- final: the answer itself, as short as possible.
 
-Tools:
-- doc_search: search the Halden Systems document library. action_input is a search phrase.
-- calculator: evaluate arithmetic. action_input is an expression such as "1240 * 12".
-- mock_api: look up live records. action_input is "get_order(A-1001)" or "get_weather(Tromso)".
-- final: give the answer. action_input is the answer itself, as short as possible.
-
-Rules:
-- Never guess a number or a policy. Look it up with doc_search first.
-- Use calculator for every arithmetic step. Do not do mental arithmetic.
-- When you have the answer, use action "final" with just the answer in action_input.
-- Keep final answers minimal: a number, a name, or one short phrase.
+If the Observation already contains what you need, use "final" immediately. Never repeat a tool call you have already made.
 
 Example 1
-User: What does the Torvald T4 cost?
-{"thought": "I need the price from the catalogue.", "action": "doc_search", "action_input": "Torvald T4 price"}
-Observation: [1] 02-products.md ... The Torvald T4 is a pressure transducer. It costs 875 euro per unit ...
-{"thought": "The catalogue gives the price directly.", "action": "final", "action_input": "875 euro"}
+User: Which customer placed order A-1004?
+{"thought": "An order ID means mock_api.", "action": "mock_api", "action_input": "get_order(A-1004)"}
+Observation: {"order_id": "A-1004", "customer": "Gdansk Shipyard", "status": "cancelled"}
+{"thought": "The record names the customer.", "action": "final", "action_input": "Gdansk Shipyard"}
 
 Example 2
 User: What do 3 Vantage V1 units cost in total?
-{"thought": "First find the unit price.", "action": "doc_search", "action_input": "Vantage V1 price per unit"}
+{"thought": "Find the unit price.", "action": "doc_search", "action_input": "Vantage V1 price per unit"}
 Observation: [1] 02-products.md ... The Vantage V1 is a thermal imaging module. It costs 3,150 euro per unit ...
-{"thought": "Now multiply the unit price by three.", "action": "calculator", "action_input": "3150 * 3"}
+{"thought": "Multiply it by three.", "action": "calculator", "action_input": "3150 * 3"}
 Observation: 9450
 {"thought": "That is the total.", "action": "final", "action_input": "9450 euro"}
 """
 
 _FENCE = re.compile(r"^\s*```(?:json)?\s*|\s*```\s*$", re.MULTILINE)
+
+# Groq states the wait in the error body rather than a header; other providers
+# use `retry-after`. Both are read, the header first.
+_RETRY_HINT = re.compile(r"try again in ([0-9.]+)\s*(ms|s)\b", re.IGNORECASE)
 
 
 @dataclass
@@ -83,10 +104,23 @@ class AgentResult:
     steps: list[Step] = field(default_factory=list)
     llm_calls: int = 0
     parse_retries: int = 0
+    throttle_waits: int = 0
+    throttle_s: float = 0.0
     prompt_tokens: int = 0
     completion_tokens: int = 0
+    # Published per-call figures, each with the source label of the call that
+    # produced it. The lists are index-aligned: `ttft_sources[i]` says where
+    # `ttft_ms[i]` came from, and a figure is never recorded without its label.
     ttft_ms: list[float] = field(default_factory=list)
+    ttft_sources: list[str] = field(default_factory=list)
     decode_tps: list[float] = field(default_factory=list)
+    decode_tps_sources: list[str] = field(default_factory=list)
+    # Server-reported cross-check, same index-aligned discipline.
+    server_ttft_ms: list[float] = field(default_factory=list)
+    server_ttft_sources: list[str] = field(default_factory=list)
+    server_decode_tps: list[float] = field(default_factory=list)
+    server_decode_tps_sources: list[str] = field(default_factory=list)
+    metric_notes: list[str] = field(default_factory=list)
     wall_s: float = 0.0
     error: str | None = None
 
@@ -148,6 +182,73 @@ def extract_json(text: str) -> dict[str, Any]:
     }
 
 
+def trim_context(messages: list[dict], budget: int = MAX_CONTEXT_CHARS) -> list[dict]:
+    """Elide the oldest observations until the conversation fits the budget.
+
+    The system prompt and the original task are never dropped: without them the
+    model has no instructions and no question. Observations are elided oldest
+    first, and the two most recent are never elided — an early version trimmed
+    the observation that held the looked-up price, and the model then had no way
+    to answer and searched again until it hit the step limit.
+    """
+    total = sum(len(m["content"]) for m in messages)
+    if total <= budget:
+        return messages
+
+    trimmed = [dict(m) for m in messages]
+    protected = len(trimmed) - 4  # keep the last two observation exchanges intact
+    for index in range(2, max(2, protected)):
+        if total <= budget:
+            break
+        content = trimmed[index]["content"]
+        if trimmed[index]["role"] == "user" and content.startswith("Observation:"):
+            total -= len(content) - len(ELIDED)
+            trimmed[index]["content"] = ELIDED
+    return trimmed
+
+
+def is_throttled(exc: Exception) -> bool:
+    """Whether a failure was the backend refusing to serve, not failing to serve.
+
+    Matched on the HTTP status rather than an SDK exception class so the agent
+    keeps depending on nothing but a client with `.chat.completions`, which is
+    what lets the same loop drive flashstack, vLLM and a hosted API unchanged.
+    """
+    return getattr(exc, "status_code", None) == 429
+
+
+def throttle_delay(exc: Exception, attempt: int) -> float:
+    """How long to wait before re-issuing a refused request.
+
+    The server's own instruction is preferred, but it is a floor rather than the
+    answer: a token-per-minute bucket tells each caller when *that* request would
+    fit, which under sustained load is a few hundred milliseconds away and refuses
+    again on arrival. Backing off exponentially underneath the server's figure
+    guarantees the wait grows, so a run converges instead of spinning through its
+    retry budget in a couple of seconds.
+    """
+    floor = min(2.0**attempt, MAX_THROTTLE_WAIT_S)
+
+    hint = None
+    headers = getattr(getattr(exc, "response", None), "headers", None)
+    if headers is not None:
+        try:
+            hint = float(headers.get("retry-after"))
+        except (TypeError, ValueError):
+            hint = None
+
+    if hint is None:
+        match = _RETRY_HINT.search(str(exc))
+        if match:
+            hint = float(match.group(1))
+            if match.group(2).lower() == "ms":
+                hint /= 1e3
+
+    if hint is None:
+        return floor
+    return min(max(hint + 0.25, floor), MAX_THROTTLE_WAIT_S)
+
+
 def run_tool(action: str, action_input: str) -> str:
     if action == "doc_search":
         return search(action_input)
@@ -174,11 +275,13 @@ class Agent:
         max_tokens: int = 200,
         seed: int | None = 0,
         stream: bool = False,
+        max_throttle_retries: int = MAX_THROTTLE_RETRIES,
     ) -> None:
         self.client = client
         self.model = model
         self.max_steps = max_steps
         self.max_retries = max_retries
+        self.max_throttle_retries = max_throttle_retries
         self.temperature = temperature
         self.max_tokens = max_tokens
         self.seed = seed
@@ -188,22 +291,51 @@ class Agent:
         """One LLM call, recording per-call metrics from whichever transport is used."""
         from bench.metrics import call_chat
 
-        text, metrics = call_chat(
-            self.client,
+        request = dict(
             model=self.model,
-            messages=messages,
+            messages=trim_context(messages),
             max_tokens=self.max_tokens,
             temperature=self.temperature,
             seed=self.seed,
             stream=self.stream,
         )
+
+        # Only a served call is counted and timed. A refusal is retried outside
+        # the measured region, so the metrics below describe the request that
+        # actually ran and carry none of the waiting.
+        for attempt in range(self.max_throttle_retries + 1):
+            try:
+                text, metrics = call_chat(self.client, **request)
+                break
+            except Exception as exc:
+                if not is_throttled(exc) or attempt == self.max_throttle_retries:
+                    raise
+                wait = throttle_delay(exc, attempt)
+                result.throttle_waits += 1
+                result.throttle_s += wait
+                time.sleep(wait)
+
         result.llm_calls += 1
         result.prompt_tokens += metrics.prompt_tokens
         result.completion_tokens += metrics.completion_tokens
-        if metrics.ttft_ms:
+
+        # A value and its provenance are appended together or not at all, so the
+        # aggregate can never attribute a figure to the wrong source.
+        if metrics.ttft_ms is not None:
             result.ttft_ms.append(metrics.ttft_ms)
-        if metrics.decode_tps:
+            result.ttft_sources.append(metrics.ttft_source)
+        if metrics.decode_tps is not None:
             result.decode_tps.append(metrics.decode_tps)
+            result.decode_tps_sources.append(metrics.decode_tps_source)
+        if metrics.server_ttft_ms is not None:
+            result.server_ttft_ms.append(metrics.server_ttft_ms)
+            result.server_ttft_sources.append(metrics.server_ttft_source)
+        if metrics.server_decode_tps is not None:
+            result.server_decode_tps.append(metrics.server_decode_tps)
+            result.server_decode_tps_sources.append(metrics.server_decode_tps_source)
+        for note in metrics.notes:
+            if note not in result.metric_notes:
+                result.metric_notes.append(note)
         return text
 
     def run(self, task_id: str, prompt: str) -> AgentResult:
@@ -265,5 +397,8 @@ class Agent:
         except Exception as exc:  # noqa: BLE001 - a backend failure is a result, not a crash
             result.error = f"{type(exc).__name__}: {exc}"
 
-        result.wall_s = time.perf_counter() - started
+        # Time spent waiting out a quota is not time the backend took to do the
+        # work, and leaving it in would make a throttled hosted run look slower
+        # than the local ones for a reason that has nothing to do with serving.
+        result.wall_s = time.perf_counter() - started - result.throttle_s
         return result
