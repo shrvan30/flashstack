@@ -203,7 +203,7 @@ def payload(**overrides) -> dict:
 
 
 def test_report_prints_the_source_of_each_figure():
-    text = build_report({"flashstack": payload()}, dispatch_note=None)
+    text = build_report({"flashstack": payload()})
     assert "## Metric provenance" in text
     assert "client-stream" in text
     # The server figure appears as a cross-check, labelled as such.
@@ -219,13 +219,13 @@ def test_report_warns_when_a_column_mixes_sources():
         "final-chunk",
     ]
     mixed["provenance"]["published"]["ttft_ms"]["publishable"] = False
-    text = build_report({"flashstack": mixed}, dispatch_note=None)
+    text = build_report({"flashstack": mixed})
     assert "Comparability warnings" in text
     assert "mixes" in text
 
 
 def test_report_states_the_throttle_and_retry_accounting_rule():
-    text = build_report({"flashstack": payload()}, dispatch_note=None)
+    text = build_report({"flashstack": payload()})
     assert "Parse retries** are billed work" in text
     assert "Throttle waits** are not work" in text
 
@@ -234,7 +234,7 @@ def test_report_handles_results_written_before_provenance_existed():
     """Old result files must degrade loudly, not silently look authoritative."""
     legacy = payload()
     del legacy["provenance"]
-    text = build_report({"flashstack": legacy}, dispatch_note=None)
+    text = build_report({"flashstack": legacy})
     assert "predate provenance recording" in text
     assert sources_of(legacy, "ttft_ms") == "unlabelled"
 
