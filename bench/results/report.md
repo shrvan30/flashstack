@@ -1,264 +1,229 @@
-# 📊 Agent Benchmark: Three Backends, One Task Suite
+# 📊 Benchmark: Three Engines, One Test
 
-**The short version:** I built a FlashAttention CUDA kernel expecting it to make inference fast. I then measured where the time actually goes. The kernel turned out to control about **1.5%** of the decode speed. The other 98.5% is the CPU struggling to keep the GPU fed.
-
-This report shows the measurements that led to that conclusion.
+> What happened when I raced my own AI engine against two professional ones —
+> and why the result surprised me.
 
 ---
 
-## 🎯 What was tested
+## 🎯 The setup
 
-The same AI agent ran the same 20 tasks against three different backends. Nothing changed between runs except the server address and the model name.
+I gave **20 tasks** to an AI agent (a program that uses tools like a
+calculator and a search function to answer questions), then ran those exact
+same 20 tasks through three different engines.
 
-Think of it as three different engines bolted into the same car, driven around the same track.
+```
+Same 20 tasks
+Same AI model
+Same settings
+      │
+      ├──▶ flashstack     (my engine, built from scratch)
+      ├──▶ vLLM           (a professional open-source engine)
+      └──▶ hosted API     (a big model in a data centre)
+```
 
-| Backend | What it is |
-|---|---|
-| **flashstack** | My engine, my CUDA kernel, running locally |
-| **vLLM** | The industry-standard fast serving engine, same GPU, same weights |
-| **hosted anchor** | A commercial API running a much bigger model — a reference point, not a fair fight |
-
-Everything ran at temperature 0, so the models behave as deterministically as possible.
-
-### Test environment
+The **only** thing that changed between runs was which engine answered. That
+is what makes it a fair race.
 
 | | |
 | :-- | :-- |
-| GPU | NVIDIA GeForce RTX 3090 |
-| Driver | 580.126.09 |
-| CUDA (torch) | 13.0 |
-| PyTorch | 2.11.0+cu130 |
+| Graphics card | NVIDIA RTX 3090 |
+| Driver / CUDA / PyTorch | 580.126.09 / 13.0 / 2.11.0+cu130 |
 | flashstack commit | `224f69c` |
-| flash-attention-cuda commit | `91c091e` |
-| Suite | 20 tasks over the Halden Systems (fictional) corpus |
+| kernel commit | `91c091e` |
+| Tasks | 20 questions about a made-up company, Halden Systems |
 
 ---
 
-## 📈 Results
+## 📏 Reading the numbers
 
-| backend | model | success | calls/task | retries | TTFT p50 (ms) | decode (tok/s) | task p50 (s) | task p95 (s) | cost/task |
-| :-- | :-- | --: | --: | --: | --: | --: | --: | --: | --: |
-| flashstack | `Qwen/Qwen2.5-0.5B-Instruct` | 15% (3/20) | 6.8 | 20 | 101 | 39.0 | 9.4 | 13.6 | 0.00092 |
-| vLLM | `Qwen/Qwen2.5-0.5B-Instruct` | 10% (2/20) | 3.7 | 20 | 24 | 273.8 | 0.5 | 1.9 | 0.00007 |
-| hosted anchor | `llama-3.3-70b-versatile` | 100% (20/20) | 3.0 | 0 | 234 | 523.4 | 1.3 | 3.3 | 0.00137 |
+Think of ordering food at a restaurant:
 
-### What each column means
+| Term | Meaning | Restaurant version |
+| :-- | :-- | :-- |
+| **TTFT** | Time To First Token — delay before the *first word* | When the first dish arrives |
+| **Decode speed** | Words per second after that | How fast the rest comes out |
+| **Task time** | Time to finish one whole task | The full meal |
+| **Calls per task** | How many times the AI was asked | Trips the waiter made |
 
-- **success** — how many of the 20 tasks the agent actually completed correctly
-- **calls/task** — how many times the agent had to call the model to finish one task
-- **retries** — times the model returned malformed output and had to be asked again
-- **TTFT p50** — median time to first token: how long you stare at a blank screen before text appears
-- **decode** — tokens generated per second once text starts flowing
-- **task p50 / p95** — median and worst-case (95th percentile) time to finish a whole task
-- **cost/task** — money spent per task, in dollars
-
-### 💰 A note on the cost column
-
-Cost is **not one number measured two ways.** The two kinds of backend are billed on completely different principles:
-
-- **Local backends** (flashstack, vLLM) rent a GPU by the hour. Cost = wall-clock GPU time at **$0.35/hour**. You pay for the clock, whether the GPU is working or idle.
-- **Hosted backend** bills per token. Cost = token usage the API itself reports, at **$0.59 per million input tokens** and **$0.79 per million output tokens**.
-
-Same currency, different accounting. Comparing them directly is fair only if you keep that in mind.
+Also: **p50** is the typical case (half the runs were faster). **p95** is the
+bad day — 95 runs in 100 beat it. p95 matters because averages hide
+disasters: nine tasks at 1 second and one at 60 averages out fine, but a real
+user would notice.
 
 ---
 
-## 🧩 Per-tier breakdown
+## 🏁 Results
 
-Tasks were grouped by how much reasoning they require. This is where the small model's limits show up.
+| Engine | Correct | First word | Speed | Typical task | Bad-day task |
+| :-- | --: | --: | --: | --: | --: |
+| **flashstack** (mine) | 3 / 20 | 101 ms | 39 words/sec | 9.4 s | 13.6 s |
+| **vLLM** | 2 / 20 | 24 ms | 274 words/sec | 0.5 s | 1.9 s |
+| **Hosted API** | 20 / 20 | 234 ms | 523 words/sec | 1.3 s | 3.3 s |
 
-| backend | single-tool | two-tool | multi-step (4+ calls) |
+Two stories here.
+
+**Speed:** my engine is about **7× slower** than vLLM — on the identical model
+and the identical graphics card. That gap is the mystery this report solves.
+
+**Correctness:** the hosted API got everything right, the other two almost
+nothing. But my engine and vLLM scored roughly the same (3 vs 2), which is the
+clue — see the last section.
+
+### Cost per task
+
+| flashstack | vLLM | Hosted API |
+| --: | --: | --: |
+| $0.00092 | $0.00007 | $0.00137 |
+
+Same currency, **two different counting methods**. My engine and vLLM run on a
+card I rent by the hour ($0.35/hr), so cost = time, like a taxi meter. The
+hosted API charges per word ($0.59/$0.79 per million in/out), so cost = word
+count, like a fixed price per kilometre.
+
+### Which tasks were hard?
+
+| Engine | Easy (1 tool) | Medium (2 tools) | Hard (4+ tools) |
 | :-- | --: | --: | --: |
-| flashstack | 1/8 | 2/8 | 0/4 |
-| vLLM | 2/8 | 0/8 | 0/4 |
-| hosted anchor | 8/8 | 8/8 | 4/4 |
+| flashstack | 1 / 8 | 2 / 8 | 0 / 4 |
+| vLLM | 2 / 8 | 0 / 8 | 0 / 4 |
+| Hosted API | 8 / 8 | 8 / 8 | 4 / 4 |
 
-The 0.5B model gets nothing right once a task needs four or more chained tool calls. The 70B hosted model gets everything right. That is a **model size** result, not a serving result.
-
----
-
-## 🔍 Where the numbers come from
-
-Every published latency and throughput figure is a **client-side stream measurement** — a stopwatch running in the benchmark client, started when the request is sent and stopped when the first chunk arrives. The same stopwatch, the same way, on all three backends.
-
-| backend | streamed | TTFT p50 source | decode tok/s source | server cross-check |
-| :-- | :-- | :-- | :-- | :-- |
-| flashstack | yes | client-stream | client-stream | 66 ms from final-chunk (135 calls) |
-| vLLM | yes | client-stream | client-stream | none reported |
-| hosted anchor | yes | client-stream | client-stream | none reported |
-
-### Why the cross-check column exists
-
-flashstack reports its own internal timing via an `x-ttft-ms` header. The other two backends don't. So it can never go in the results table — you can't compare a number only one contestant produces.
-
-But the difference between the two is itself worth knowing:
-
-| | flashstack TTFT |
-| :-- | --: |
-| What the server thinks | 66.5 ms |
-| What the client actually waits | 101.4 ms |
-| **Difference** | **34.9 ms (1.53×)** |
-
-That 34.9 ms is the real, measured cost of packaging the answer up and shipping it: JSON encoding, SSE event framing, and pushing bytes through the loopback socket.
-
-The server stops its clock the moment the first token exists. The client can't start reading until that token has been serialized, wrapped, and transmitted. **Published TTFT is the client number** — because that's what a caller actually waits for, and because it's the only definition all three backends can supply.
+Both small-model engines scored **0 / 4** on hard tasks. The tiny model could
+sometimes manage one step; chaining four without losing track, never. That is
+a limit of the model's brain, not the engine running it.
 
 ---
 
-## ⚖️ How retries and throttling are counted
+## ⏱️ Measuring honestly
 
-Two different things can make a backend issue more calls than a task needs. They're counted differently because they *cost* differently.
+There are two ways to time "how long until the first word":
 
-**Parse retries — billed work, counted in full.**
-The model returned something that wasn't a valid action object. The agent sent one corrective message and the backend generated again. Those extra calls appear in `calls/task`, their tokens appear in the token counts, and their latency stays inside the task timings.
+```
+ Server's stopwatch          Client's stopwatch
+ ─────────────────           ──────────────────
+ Stops: word created         Stops: word arrives on my screen
+      = 66.5 ms                   = 101.4 ms
+```
 
-> A backend that formats badly *should* look more expensive, because it is.
+The **34.9 ms** difference is real time spent packing the word into JSON,
+wrapping it in a streaming message and pushing it through the socket.
 
-**Throttle waits — not work, subtracted out.**
-A hosted endpoint refused the request before serving it. Nothing was computed, nothing was billed. That waiting time is measured and reported separately, then subtracted from task latency and from the run's wall clock.
+The smaller number would flatter my engine. I published the bigger one,
+because it is what a user actually waits for, and because it is the only
+measurement all three engines can supply — vLLM and the hosted API do not
+report internal timings. **Every published number is measured the same way on
+all three engines.**
 
-> Leaving it in would charge a local backend's GPU-hour rate for time spent sleeping, and would make a rate-limited hosted API look computationally slow when it was only queued.
+Same principle for extra calls:
+
+- **Parse retries count as work.** The AI replied with something garbled, the
+  agent said "try again," the GPU genuinely ran twice. An engine that formats
+  badly *should* look more expensive. It is.
+- **Throttle waits do not.** The hosted service refused *before* computing
+  anything. Counting it would charge my rented GPU's hourly rate for sleeping.
 
 ---
 
-## 📉 Charts
+## 🔍 The big question: where did the 7× go?
 
-![decode throughput](comparison.svg)
+Mine: 39 words/sec. vLLM: 274. Same model, same card. Three suspects — only
+one is guilty.
 
----
+### 🚨 Suspect 1: the GPU is waiting around — **GUILTY**
 
-# 🔬 Where the 7× gap actually comes from
+NVIDIA Nsight Systems recorded what the card actually did while generating:
 
-vLLM decodes at **273.8 tok/s**. flashstack decodes at **39.0 tok/s**. Same GPU, same weights, same task. That's a **7.0× gap.**
+```
+GPU busy:  ██ 6%
+GPU idle:  ██████████████████████████████████ 94%
+```
 
-Three explanations are usually offered for a gap like this. Only one of them explains *this* gap — and the measurements say which.
+For every word, the engine fires ~**1,388 tiny jobs** at the GPU. Each runs
+~**2.8 microseconds** — but there is a **79 microsecond gap** between them
+while Python works out what to send next.
 
----
+```
+Chef (GPU):    cooks a dish in 3 seconds       ⚡
+Waiter (CPU):  79 seconds to bring the next order  🐌
+```
 
-## Cause 1: Host dispatch overhead — enough on its own ✅
+The chef is not the problem. With no waiting, my engine would hit **651
+words/sec** — **16.7×** its real speed and **2.4× past vLLM**. This one cause
+more than covers the whole 7× gap by itself.
 
-### The idea
+### 🤔 Suspect 2: batching — **NOT GUILTY (here)**
 
-A GPU doesn't decide what to do. The CPU tells it, one operation at a time. Every one of those instructions has to be prepared in Python: look up the attribute, allocate the tensor, check the arguments, issue the launch.
+vLLM can slot new questions in while answering an existing one, like a bus
+picking up passengers anywhere instead of waiting at the depot. Great feature
+— but my agent asks one question at a time and waits, so there was never a
+second passenger. It is a real advantage of vLLM for a busy website, and it
+explains **none** of the gap measured here. Blaming it would mean borrowing an
+explanation from a test I never ran.
 
-**An analogy:** imagine a chef who can chop a vegetable in under a second, but has to walk to the pantry and back for each one. The chopping isn't the problem. The walking is.
+### 😬 Suspect 3: my attention kernel — **BARELY INVOLVED**
 
-### The measurement
+The uncomfortable one. This whole project is built around a FlashAttention
+CUDA kernel I wrote by hand, so how much is its fault?
 
-An Nsight Systems trace of decode steps ([`docs/profiles/decode_dispatch.md`](../../docs/profiles/decode_dispatch.md)) found the GPU:
+```
+15.9 µs per layer per word  ×  24 layers  =  0.38 ms per word
+0.38 ms  ÷  25.6 ms total per word        =  about 1.5%
+```
 
-<p align="center"><b>6% busy · 94% idle</b></p>
+Making attention *infinitely fast* would take me from 39 words/sec to **39.6**.
 
-| | |
+### 📋 Verdict
+
+| Suspect | Contribution |
 | :-- | :-- |
-| GPU operations issued per token | ~1,388 |
-| Duration of each operation | ~2.8 µs |
-| Host-side gap between operations | ~79 µs |
+| GPU waiting on Python | Enough alone (16.7× ceiling vs a 7× gap) |
+| Missing batching | 0× — the workload is sequential |
+| Attention kernel quality | 1.5% at most |
 
-The GPU spends the overwhelming majority of decode **waiting for its next instruction.**
+**This benchmark measures how fast Python can hand out instructions, not how
+good my attention kernel is** — the exact opposite of what I expected. The
+kernel is real, correct and measured; it just sits inside a system where
+everything around it costs more. (In isolation it is fine: prefill reaches
+about a third of the card's compute peak, decode 27% of memory bandwidth.
+Respectable, and nearly irrelevant to the final score.)
 
-### What that implies
+### What would actually help
 
-If dispatch were free — if the same GPU work were issued back to back with no gaps — flashstack would decode at:
+| Fix | What it does | Chef analogy |
+| :-- | :-- | :-- |
+| **CUDA Graphs** | Record the sequence once, replay it | Hand over the full menu upfront |
+| **Operator Fusion** | Merge many small jobs into fewer big ones | Combine 10 orders into one |
+| **Paged KV Cache** | Store memory efficiently, fit more work | A better-organised fridge |
 
-<p align="center"><b>651 tok/s — 16.7× its measured rate</b></p>
-
-That ceiling is **2.4× beyond vLLM's measured 273.8 tok/s.**
-
-So dispatch overhead alone *more than* accounts for the entire 7.0× gap. Nothing else needs to be invoked to explain it.
-
-> That doesn't mean nothing else is true. It means nothing else is *required*.
-
----
-
-## Cause 2: Continuous batching — contributes nothing here ⬜
-
-### The idea
-
-Continuous batching lets a server slot new requests in between decode steps, instead of making them wait for the current batch to finish. It's a genuine and significant advantage of vLLM.
-
-### Why it doesn't apply
-
-This benchmark never gives it the chance. The agent is **strictly sequential** — one request in flight at a time, always. There is never a second request waiting to be admitted.
-
-vLLM's scheduler is running exactly the same single stream flashstack's is.
-
-<p align="center"><b>Contribution to this gap: 0×</b></p>
-
-This is the right answer for a *served deployment under concurrent load.* It explains none of the gap measured **here**, and citing it would mean borrowing an explanation from a workload this report never ran.
+All three attack the launch count. None is about attention. That was the
+lesson.
 
 ---
 
-## Cause 3: Attention kernel quality — capped at ~1.5% ⬜
+## ⚠️ What the success column does *not* say
 
-This is the uncomfortable one, since the custom kernel is the centerpiece of the whole project.
+It is tempting to read 3-vs-2 as "my engine is smarter than vLLM." It is not.
 
-### The measurement
+**Success rate belongs to the model, not the engine.** Both ran the same small
+model (Qwen2.5-0.5B, ~500 million parameters); the hosted API ran Llama 3.3 at
+70 billion — roughly 140× larger. The engine is the delivery truck, the model
+is the cargo. Two trucks carrying the same cargo deliver the same thing, so
+3-vs-2 is just noise in the maths.
 
-From the kernel repository's own nsys traces, at sequence length 1024:
-
-| | |
-| :-- | --: |
-| Decode attention cost per layer per token (split + merge) | 15.9 µs |
-| Layers in Qwen2.5-0.5B | 24 |
-| **Total attention per token** | **0.38 ms** |
-| Measured total time per token | 25.6 ms |
-| **Attention's share of decode wall clock** | **~1.5%** |
-
-### What that implies
-
-Make attention **infinitely fast** — zero cost, instantaneous — and flashstack goes from:
-
-<p align="center"><b>39.0 tok/s → about 39.6 tok/s</b></p>
-
-The hand-written kernel this entire project is built around is worth **at most 1.5%** of the number it is most often assumed to control.
+The column still earns its place: failed tasks burn every call they made, and
+a *large* divergence on identical weights would signal a bug. 3 and 2 means
+everything is behaving.
 
 ---
 
-## 📋 Adding it up
+## 📌 Summary
 
-| cause | contribution to this gap |
-| :-- | :-- |
-| **Host dispatch overhead** | Sufficient alone — a 16.7× ceiling against a 7.0× gap |
-| **Continuous batching** | 0× — the workload is sequential |
-| **Attention kernel quality** | ≤ 1.5% of decode wall clock |
-
-### The honest reading
-
-This comparison measures **how fast Python can issue kernel launches.** It does not measure how good the attention kernel is.
-
-That is the finding — and it is the opposite of what the project set out expecting. The kernel work is real, measured, and correct. The serving gap it sits inside is dominated by everything around it.
-
-### What would actually move the number
-
-All three of these attack the **launch count**, not attention:
-
-| change | what it does |
-| :-- | :-- |
-| **CUDA graphs** | Record a launch sequence once, replay it instead of re-issuing every step |
-| **Operator fusion** | Fewer, bigger kernels doing the same work |
-| **Paged KV cache** | More concurrent sequences per byte of memory → higher achievable batch size |
-
-None of them is about attention. All are out of scope for this stage by instruction.
-
-### For completeness
-
-The Phase-1 profiles show the **prefill kernel reaching roughly a third of this card's fp32 FMA peak**, and the **decode kernel reaching up to 27% of DRAM peak.**
-
-Respectable in isolation — and, as the decomposition above shows, almost irrelevant to the end-to-end figures here.
-
----
-
-## ⚠️ What the success column does and does not say
-
-Success rate here is a property of **Qwen2.5-0.5B-Instruct**, not of the serving stack.
-
-Two backends running identical weights at temperature 0 should agree closely. Where they don't (15% vs 10%), the difference is sampling and numerics — not capability. Neither engine is "smarter" than the other.
-
-The column is included for two reasons:
-
-1. **Success rate drives cost.** A failed task still burns every call it made.
-2. **A large divergence would be a bug.** If two backends on identical weights disagreed sharply, that would itself be a finding worth chasing.
+1. My engine is 7× slower than vLLM on the same model and card.
+2. The GPU was idle 94% of the time, waiting on Python.
+3. That single fact more than explains the entire gap.
+4. My hand-written attention kernel accounts for just 1.5% of the time.
+5. **Measuring beats guessing — even when the measurement is not the answer
+   you wanted.**
 
 ---
 
