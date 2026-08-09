@@ -1,99 +1,261 @@
-# From a CUDA kernel to an agent
+# 🧱 From a CUDA Kernel to an Agent
 
-This project was built bottom-up in four stages: a FlashAttention kernel written from scratch,
-an engine that runs real models on it, an OpenAI-compatible server, and an agent benchmark that
-measures the whole stack against vLLM and a hosted API. The goal was a specific question — how
-much is a good attention kernel worth to end-to-end serving? — and the honest answer turned out
-to be much smaller than the effort that went into the kernel. That result is the most valuable
-thing the project produced.
+> How this project was built, one layer at a time — and the surprise at the end.
 
-## Layer 1: the kernel
+I built this in four stages, bottom to top. Each layer sits on the one below.
 
-The kernel is batched multi-head causal FlashAttention for `head_dim = 64`, fp16 in and out with
-fp32 accumulation, in two variants. **Prefill** runs one block per `(batch, head, query tile)`
-with an online softmax keeping running max and sum in registers, and skips key tiles entirely
-above the diagonal rather than computing and masking them. **Decode** is a different problem: a
-single query row against a long cache offers almost no parallelism along the query dimension, so
-it splits the key dimension, computes partial `(m, l, acc)` triples in parallel, and merges them
-with a log-sum-exp reduction.
+```
+Layer 4:  Agent Benchmark   ← measures everything
+Layer 3:  Server            ← talks to the outside world
+Layer 2:  Engine            ← runs the AI model
+Layer 1:  CUDA Kernel       ← does the maths on the GPU
+```
 
-The decode split size turned out to matter more than anything else in the kernel. With the chunk
-fixed at 512 keys, one sequence at context 1024 launches 24 blocks on an 82-SM card — the GPU is
-three-quarters empty. Choosing the largest power-of-two chunk that still reaches two blocks per
-SM is worth **2.9–3.0x**. The chunk is purely a scheduling decision: the log-sum-exp merge makes
-the result numerically identical whatever the split, and the test suite asserts exactly that
-across every chunk in the range.
+I was chasing one question: **how much is a really good attention kernel worth
+to a real AI system?**
 
-Against `flash-attn` 2.8.3 the prefill kernel is **2.9–3.7x slower** at B=8 causal, and 62x
-faster than the v1 kernels it replaces. It sustains 10.4–11.7 TFLOP/s, about 29–32% of the
-RTX 3090's 36.2 TFLOP/s fp32 FMA peak. The gap is structural, not a tuning deficit: every
-multiply happens on the CUDA cores with operands arriving through shared memory at roughly 1.75
-bytes per FMA against an SM that sustains about 1.0, which caps the design near 57% of fp32 peak
-before any overhead. flash-attn wins by running the matmuls on tensor cores, taking operands from
-registers via `ldmatrix`/`mma`. Closing that gap means writing a different kernel, not polishing
-this one.
+The honest answer turned out to be *much smaller* than the effort I spent
+building one. That disappointing result is the most valuable thing here.
 
-That explanation is a **model**, and the documentation says so. Confirming which unit actually
-saturates needs hardware performance counters, and the machine everything here was measured on
-denies access to them. Rather than estimate, the counter-derived figures are absent and tracked
-as open work. Nothing in this project claims a measurement it did not make.
+---
 
-## Layer 2 and 3: engine and server
+## 🔬 Layer 1: The Kernel
 
-The engine runs GPT-2 and Qwen2.5-0.5B-Instruct with attention on the kernel and **every other
-operation in stock eager PyTorch** — RoPE, GQA head expansion, layernorm, the SwiGLU MLP. The KV
-cache is preallocated fp16, and the server is FastAPI speaking `/v1/chat/completions` with SSE
-streaming and static batching that groups up to four requests in a 25 ms window.
+A **kernel** is a small program that runs on the graphics card. Mine does
+*attention* — the step where the AI looks back at earlier words to understand
+the current one.
 
-The correctness bar was behavioural, not approximate: greedy generation through the patched model
-must reproduce the stock model's token sequence exactly, with any divergence permitted only after
-a position where the stock model's top-two logits are within 1e-2 — a genuine fp16 tie rather
-than a bug.
+Mine handles words 64 numbers wide, stores them in a compact 16-bit format to
+save memory, but adds them up in a more precise 32-bit format so small errors
+do not pile up.
 
-## Layer 4: the measurement, and what it found
+> **Key idea:** store cheap, calculate carefully. Cheap storage saves memory
+> bandwidth; careful arithmetic protects accuracy. You want both.
 
-The benchmark runs a ReAct agent over 20 frozen tasks against a fictional-company corpus, so every
-answer is verifiable offline and none can be recalled from model priors. The same suite, the same
-agent, temperature 0; only `base_url` and the model change.
+### Two jobs, two kernels
 
-Before publishing anything, one harness bug had to be fixed. The code preferred each backend's
-own reported metrics where available. flashstack reports its own TTFT; vLLM and the hosted
-endpoint do not. So the TTFT column would have held a server timestamp for one row and a client
-timestamp for the other two — three backends, two definitions, one column, and nothing visible
-saying so. The fix was to fix the *published* figure at the client-side measurement everywhere,
-because it is the only definition all three can supply, and to carry each server's own figure
-alongside as a labelled cross-check. Every number now travels with a provenance label from the
-call that produced it all the way into the report, and the report refuses to present a mixed
-column as comparable. Had the old rule stood, flashstack would have published 66.5 ms against
-vLLM's 24 ms, flattering itself by a third, invisibly.
+AI generates text in two very different phases, so I wrote two kernels.
 
-Then the result. vLLM decodes at 273.8 tok/s against flashstack's 39.0 — a **7.0x gap on
-identical weights**. Decomposing it:
+**Prefill — reading your question.** All the words arrive at once, so there is
+plenty to do in parallel. Each group of GPU threads takes one chunk of
+questions and streams the earlier words past it, keeping a running maximum and
+running total in the fastest memory available. It never builds the giant
+score table that the textbook version does.
 
-- **Host dispatch overhead is sufficient on its own.** The GPU is 6% busy and 94% idle during
-  decode, issuing ~1,388 operations per token, each ~2.8 µs, separated by ~79 µs of host-side
-  gap. A dispatch-free ceiling is ~651 tok/s — 2.4x *beyond* vLLM's measured rate.
-- **Continuous batching contributes exactly zero.** The agent is strictly sequential, so there is
-  never a second request to admit. It is a genuine vLLM advantage under concurrent load and it
-  explains none of this measurement. Citing it would mean borrowing an explanation from a
-  workload that was not run.
-- **Attention kernel quality is worth at most 1.5%.** 0.38 ms of a 25.6 ms token. An infinitely
-  fast attention kernel moves 39.0 tok/s to 39.6.
+It also skips work it does not need. A word can only look *backwards*, never
+forwards. So instead of computing the future half and then throwing it away
+with a mask, the kernel never computes it.
 
-The benchmark measures how fast Python can issue launches. The hand-written kernel — the thing
-the whole project is built around — controls about one and a half percent of the number it is
-usually assumed to control.
+> **Teaching point:** the fastest work is work you never do. Ask students to
+> spot which half of a triangle diagram is wasted before you tell them.
 
-## What I would do next, and what I learned
+**Decode — writing the answer, one word at a time.** Now there is exactly
+*one* new word looking back at possibly thousands of old ones. One word means
+almost no parallel work — a GPU with thousands of workers has one thing to do.
 
-The changes that would actually move the number all attack the launch count: CUDA graphs to
-replay a captured launch sequence, operator fusion, paged KV to raise achievable batch size.
-None is about attention.
+The fix: split the *old* words into chunks and let many worker groups each
+handle a chunk at the same time. Each returns a partial result. Then a final
+step stitches the partials together into the correct answer.
 
-The broader lesson is about measurement discipline. Three separate times, the careful thing and
-the convenient thing diverged: publishing the server's flattering TTFT, listing continuous
-batching among the causes because it is true in general, and estimating counter-derived figures
-rather than leaving them absent. Each would have produced a more impressive-looking document and
-a less true one. The reason to build the harness carefully is that it makes the inconvenient
-answer as easy to publish as the convenient one — and here, the inconvenient answer was the
-interesting one.
+```
+        one new word
+             │
+   ┌────┬────┼────┬────┐
+   ▼    ▼    ▼    ▼    ▼
+ chunk chunk chunk chunk chunk   ← all at once
+   └────┴────┼────┴────┘
+             ▼
+      stitch together
+```
+
+### The setting that mattered most
+
+How big should each chunk be? This turned out to be the single biggest lever
+in the whole kernel.
+
+My card has **82 processors**. With chunks fixed at 512 old words and a
+context of 1024, one sequence produces only **24 chunks of work**:
+
+```
+82 processors, 24 jobs
+██████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  three-quarters idle
+```
+
+Using smaller chunks makes more jobs — enough to keep every processor at least
+twice as busy. That change alone made decoding **~3× faster**.
+
+Here is the beautiful part: **the answer does not change.** The stitching
+maths is built so that any chunk size gives a numerically identical result.
+The test suite checks exactly this across every size in the range. So chunk
+size is purely about *scheduling*, never about correctness — a free 3×.
+
+### Comparing against the professionals
+
+Against `flash-attn` 2.8.3, the industry-standard library:
+
+| Comparison | Result |
+| :-- | :-- |
+| vs. my own first version | **62× faster** |
+| vs. flash-attn (prefill) | **2.9–3.7× slower** |
+| Raw throughput | 10.4–11.7 TFLOP/s |
+| Share of the card's peak | 29–32% of 36.2 TFLOP/s |
+
+So: a huge win over where I started, and still well behind the professionals.
+**Why?**
+
+Not because my code is sloppy. Because of a **structural** limit.
+
+Every multiplication in my kernel runs on the card's general-purpose CUDA
+cores, and the numbers arrive through shared memory. That path needs about
+**1.75 bytes delivered per multiply**, but the processor can only sustain
+about **1.0**. The delivery pipe is the bottleneck, not the maths.
+
+```
+Needs:     1.75 bytes per calculation
+Supplies:  1.00 bytes per calculation
+           ────────────────────────────
+Ceiling:   ~57% of peak — before any other overhead
+```
+
+flash-attn avoids this by using **tensor cores** — specialised hardware that
+does matrix maths directly, pulling numbers from registers instead of shared
+memory. Different pipe, different ceiling.
+
+**The lesson: no amount of polishing my kernel reaches their speed. It needs
+a different design.** Knowing *which* kind of problem you have — a tuning
+problem or a design problem — saves months.
+
+### A note on honesty
+
+That 1.75-vs-1.0 explanation is a **model**, not a measurement. Proving which
+part of the chip truly runs out of capacity needs special hardware counters,
+and the rented machine I worked on blocks access to them.
+
+I could have estimated those numbers. They would have looked authoritative.
+Instead they are **absent**, and listed as open work.
+
+> **Teaching point:** "I do not know yet" is a legitimate entry in a technical
+> report. Nothing in this project claims a measurement it did not make.
+
+---
+
+## ⚙️ Layer 2 and 3: Engine and Server
+
+The **engine** runs real models — GPT-2 and Qwen2.5-0.5B-Instruct. Attention
+runs on my kernel; everything else uses ordinary PyTorch, deliberately
+unoptimised. That is what makes the final measurement meaningful: only one
+part is special, so only one part can be credited.
+
+The **server** is a FastAPI app that speaks the same language as the OpenAI
+API, streams words out as they are generated, and can group up to four
+requests arriving within 25 milliseconds.
+
+### How do you know a rewritten kernel is correct?
+
+This is the part worth teaching, because "it looks about right" is how bugs
+survive.
+
+The rule: **with randomness switched off, my version must produce the exact
+same words as the original, in the exact same order.**
+
+There is one narrow exception. Sometimes the model's top two choices are
+almost perfectly tied — within 0.01. At a genuine tie, the tiniest rounding
+difference can tip the choice, and that is normal, not a bug. So divergence is
+allowed *only after* such a tie.
+
+```
+Same words, same order          ✅ pass
+Different word, after a tie     ✅ pass  (genuine coin-flip)
+Different word, no tie          ❌ bug
+```
+
+> **Teaching point:** a good test says exactly what "correct" means *before*
+> you run it — including which failures are acceptable and why.
+
+---
+
+## 📐 Layer 4: The Measurement
+
+The benchmark runs an agent through **20 fixed tasks** about a **made-up
+company**. Fictional on purpose: the model cannot have memorised the answers,
+so it must actually use its tools. Every answer is checkable offline.
+
+Same tasks, same agent, randomness off. Only the engine changes.
+
+### The bug I found before publishing
+
+My harness had a rule: *use each engine's own reported timing where
+available*. Sounds reasonable. It was not.
+
+My engine reports its own internal timing. vLLM and the hosted API do not. So
+one column would have mixed two different definitions with nothing saying so:
+
+```
+flashstack   66.5 ms   ← server's internal stopwatch
+vLLM         24.0 ms   ← time until the word arrived
+hosted      234.0 ms   ← time until the word arrived
+```
+
+My engine would have looked **a third faster than it is**, and no reader could
+have seen why.
+
+The fix: publish the *arrival* time for everyone, because it is the only
+definition all three can supply. Each server's own figure is carried alongside
+as a clearly labelled cross-check. Every number now travels with a label
+saying where it came from, and the report refuses to print a mixed column.
+
+> **Teaching point:** the bug was not in the maths. It was in the definition.
+> Those are the ones that survive review.
+
+### The result
+
+vLLM decodes at **273.8 words/sec**. Mine manages **39.0**. A **7× gap** on
+identical weights and identical hardware. Where does it go?
+
+**Cause 1 — the GPU is waiting. Guilty, and sufficient alone.**
+The graphics card is **6% busy and 94% idle** while generating. Each word
+needs ~1,388 tiny jobs of ~2.8 microseconds each, separated by ~79
+microseconds of Python deciding what to send next. Remove the waiting and the
+ceiling is ~651 words/sec — **2.4× beyond vLLM**. This one cause more than
+covers the whole gap.
+
+**Cause 2 — missing batching. Exactly zero.**
+vLLM can serve several requests at once. My agent asks one question at a time,
+so there was never a second request to serve. It is a real vLLM advantage
+under real load, and it explains *none* of this measurement. Citing it would
+mean borrowing an explanation from a test I did not run.
+
+**Cause 3 — my kernel. At most 1.5%.**
+0.38 ms of attention inside a 25.6 ms word. An infinitely fast attention
+kernel takes 39.0 words/sec to **39.6**.
+
+> **The finding:** this benchmark measures how fast Python can issue
+> instructions — not how good my kernel is. The thing the entire project is
+> built around controls about **one and a half percent** of the number it is
+> usually assumed to control.
+
+---
+
+## 🔭 What next, and what I learned
+
+The fixes that would actually move the number all attack the same thing —
+**the number of instructions sent** — and none of them is about attention:
+CUDA graphs (record a sequence once, replay it), operator fusion (fewer,
+bigger jobs), paged KV cache (fit more work in memory).
+
+The bigger lesson is about discipline. **Three separate times, the careful
+thing and the convenient thing pointed in opposite directions:**
+
+| The convenient thing | The careful thing |
+| :-- | :-- |
+| Publish my flattering internal timing | Publish the timing all three engines can supply |
+| List batching as a cause — it is true in general | Leave it out — it did nothing *here* |
+| Estimate the missing hardware figures | Leave them absent, marked as open work |
+
+Each convenient choice would have produced a more impressive document and a
+less true one.
+
+The reason to build a measurement harness carefully is precisely this: **it
+makes the inconvenient answer as easy to publish as the convenient one.**
+
+And here, the inconvenient answer was the interesting one.
