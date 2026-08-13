@@ -1,494 +1,339 @@
-<p align="center">
-  <img src="docs/images/banner.png" width="900" alt="FlashStack">
-</p>
-
-<h1 align="center">⚡ FlashStack</h1>
+<h1 align="center">FlashStack</h1>
 
 <p align="center">
-  <b>A small AI inference engine built from scratch, powered by a custom CUDA FlashAttention kernel.</b>
-</p>
-
-<p align="center">
-  Learn how ChatGPT generates answers, how GPUs make AI fast, and where the time actually goes.
+  <b>A small LLM inference stack built from scratch — CUDA kernel to agent benchmark — to measure where serving time actually goes.</b>
 </p>
 
 <p align="center">
   <a href="https://github.com/shrvan30/flashstack/actions/workflows/ci.yml"><img src="https://github.com/shrvan30/flashstack/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://github.com/shrvan30/flashstack/actions/workflows/gpu-tests.yml"><img src="https://github.com/shrvan30/flashstack/actions/workflows/gpu-tests.yml/badge.svg" alt="GPU Tests"></a>
   <a href="https://github.com/shrvan30/flashstack/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License: MIT"></a>
   <img src="https://img.shields.io/badge/python-3.10%2B-blue.svg" alt="Python">
-  <img src="https://img.shields.io/badge/CUDA-12.x-success.svg" alt="CUDA">
-  <img src="https://img.shields.io/badge/PyTorch-2.x-orange.svg" alt="PyTorch">
+  <img src="https://img.shields.io/badge/CUDA-13.0-76B900.svg" alt="CUDA">
+  <img src="https://img.shields.io/badge/PyTorch-2.11%2Bcu130-EE4C2C.svg" alt="PyTorch">
 </p>
 
----
-
-## 📚 Documentation
-
-| Resource | Description |
-|---|---|
-| [`docs/writeup.md`](https://github.com/shrvan30/flashstack/blob/main/docs/writeup.md) | Complete explanation, from CUDA kernel to inference engine |
-| [`docs/architecture.md`](https://github.com/shrvan30/flashstack/blob/main/docs/architecture.md) | System architecture |
-| [`docs/engine.md`](https://github.com/shrvan30/flashstack/blob/main/docs/engine.md) | Inference engine internals |
-| [`docs/server.md`](https://github.com/shrvan30/flashstack/blob/main/docs/server.md) | OpenAI-compatible API server |
-| [`docs/kernel.md`](https://github.com/shrvan30/flashstack/blob/main/docs/kernel.md) | FlashAttention kernel implementation |
-| [`docs/benchmark.md`](https://github.com/shrvan30/flashstack/blob/main/docs/benchmark.md) | Benchmark methodology |
-| [`docs/profiles/decode_dispatch.md`](https://github.com/shrvan30/flashstack/blob/main/docs/profiles/decode_dispatch.md) | Nsight Systems profiling and dispatch analysis |
-| [`docs/faq.md`](https://github.com/shrvan30/flashstack/blob/main/docs/faq.md) | Frequently asked questions |
-
-## 🔗 Important Links
-
-| Link | URL |
-|---|---|
-| Repository | https://github.com/shrvan30/flashstack |
-| FlashAttention CUDA kernel | https://github.com/shrvan30/flash-attention-cuda |
-| Benchmark report | https://github.com/shrvan30/flashstack/blob/main/bench/results/report.md |
-| Performance charts | https://github.com/shrvan30/flashstack/tree/main/bench/results |
-| System write-up | https://github.com/shrvan30/flashstack/blob/main/docs/writeup.md |
-| Architecture | https://github.com/shrvan30/flashstack/blob/main/docs/architecture.md |
-| Dispatch analysis | https://github.com/shrvan30/flashstack/blob/main/docs/profiles/decode_dispatch.md |
-| Kernel benchmarks | https://github.com/shrvan30/flash-attention-cuda/blob/main/docs/benchmarks.md |
-| License | https://github.com/shrvan30/flashstack/blob/main/LICENSE |
+> **What did I build?** A from-scratch inference stack — a hand-written CUDA
+> FlashAttention kernel, a PyTorch engine with a KV cache, an OpenAI-compatible
+> streaming server, and a 20-task agent benchmark — measured against **vLLM** and a
+> **hosted API** on one machine. Headline finding: my server is 7x slower than vLLM
+> at decode, and the profiler proves the kernel is **not** the reason — the GPU is
+> only ~6% busy, waiting on Python.
 
 ---
 
-## 📖 Table of Contents
+## Table of Contents
 
-- [What is FlashStack?](#-what-is-flashstack)
-- [Why did I build it?](#-why-did-i-build-this)
-- [How does ChatGPT answer a question?](#-how-does-chatgpt-answer-a-question)
-- [What is FlashAttention?](#-what-is-flashattention)
-- [How FlashStack works](#️-how-flashstack-works)
-- [Project structure](#-project-structure)
-- [Features](#-features)
-- [Benchmark results](#-benchmark-results)
-- [Installation](#-installation)
-- [Running the server](#-running-the-server)
-- [Running the benchmark](#-running-benchmarks)
-- [Continuous integration](#-continuous-integration-ci)
-- [Technologies used](#-technologies-used)
-- [Future improvements](#-future-improvements)
-- [Related research](#-related-research)
-- [License](#-license)
-
----
-
-## 🤖 What is FlashStack?
-
-Imagine asking ChatGPT:
-
-> **"What is the capital of India?"**
-
-The AI doesn't magically know the answer. It performs **thousands of mathematical operations** on the GPU.
-
-FlashStack is a project that shows **how those operations happen.**
-
-Instead of using the default attention operation inside PyTorch, FlashStack uses a **CUDA FlashAttention kernel written completely from scratch.** Everything else is kept deliberately simple using PyTorch, so you can see exactly where the time goes.
+1. [What is FlashStack?](#1-what-is-flashstack)
+2. [What can it actually do, today?](#2-what-can-it-actually-do-today)
+3. [Motivation](#3-motivation)
+4. [Architecture](#4-architecture)
+5. [End-to-end flow](#5-end-to-end-flow)
+6. [CUDA kernel](#6-cuda-kernel)
+7. [Attention integration](#7-attention-integration)
+8. [Inference engine](#8-inference-engine)
+9. [API / streaming server](#9-api--streaming-server)
+10. [Benchmark methodology](#10-benchmark-methodology)
+11. [Results](#11-results)
+12. [Engineering decisions](#12-engineering-decisions)
+13. [Challenges and debugging](#13-challenges-and-debugging)
+14. [Limitations](#14-limitations)
+15. [Reproduce](#15-reproduce)
+16. [Tests / CI](#16-tests--ci)
+17. [Future work](#17-future-work)
+- [Documentation](#documentation) · [License](#license)
 
 ---
 
-## 🎯 Why did I build this?
+## 1. What is FlashStack?
 
-Modern AI models are very fast. But **why?**
+Ask ChatGPT a question and thousands of GPU operations fire before the first word
+appears. FlashStack is that pipeline rebuilt small enough to see through: only the
+attention math is replaced — with
+[my own CUDA kernel](https://github.com/shrvan30/flash-attention-cuda) — and
+everything else is kept deliberately simple PyTorch, so when the benchmark says
+where the time goes, the answer is attributable.
 
-Is it because of:
+## 2. What can it actually do, today?
 
-- Faster GPUs?
-- Better CUDA kernels?
-- Better software?
-- Better batching?
+No buzzwords — concrete capabilities, and the honest cannot-yet list.
 
-I wanted to measure it instead of guessing.
+**You can:**
 
-So I built:
+- Serve **two real models** — GPT-2 (124M) and **Qwen2.5-0.5B-Instruct** — on a
+  single NVIDIA GPU, with attention running on the hand-written kernel.
+- Talk to it with **any OpenAI client**: change `base_url`, chat, stream tokens.
+  No SDK changes, no custom protocol.
+- Handle up to **4 requests at once** (static batching, 25 ms window), proven by a
+  test that reads batch formation from `/metrics`.
+- Run a complete **20-task tool-using agent benchmark** against this server, vLLM,
+  or any hosted OpenAI-compatible API — and regenerate every published number with
+  the commands in [Reproduce](#15-reproduce).
 
-✅ My own FlashAttention CUDA kernel
-↓
-✅ A tiny inference engine
-↓
-✅ An OpenAI-compatible server
-↓
-✅ An AI agent benchmark
+**It cannot (yet):** serve models whose head size is not 64 (so nothing bigger
+than the 0.5B class), handle many concurrent users (no continuous batching), or
+match vLLM's throughput — it is **7x slower at decode**, and the most valuable
+artifact here is the profiler evidence of exactly why:
+[`docs/profiles/decode_dispatch.md`](docs/profiles/decode_dispatch.md).
 
-and compared everything against **vLLM** and a **hosted API** using exactly the same tasks.
+## 3. Motivation
 
----
+Modern inference is fast. **Why?** Faster GPUs, better kernels, better batching,
+better software? I wanted to measure it instead of guessing — so I built the whole
+ladder myself and put the same workload on every rung:
 
-## 🧠 How does ChatGPT answer a question?
+my CUDA kernel → a tiny engine → an OpenAI-compatible server → an agent benchmark
+→ compared against **vLLM** and a **hosted API** with identical tasks.
 
-Suppose you ask:
+## 4. Architecture
 
-```
-Explain gravity.
-```
+![Architecture](docs/architecture.svg)
 
-The model performs these steps:
+*Deep dive: [`docs/architecture.md`](docs/architecture.md)*
 
-```
-You
- │
- ▼
-Tokenization
- │
- ▼
-Embedding
- │
- ▼
-Transformer Layers
- │
- ├── Attention
- ├── MLP
- ├── LayerNorm
- └── Residual Connections
- │
- ▼
-Output Tokens
- │
- ▼
-"Gravity is..."
-```
-
-FlashStack changes only one part:
-
-```
-Attention
-```
-
-Instead of using PyTorch's implementation, it uses:
-
-```
-My CUDA FlashAttention Kernel
-```
-
-Everything else stays unchanged.
-
----
-
-## 🚀 What is FlashAttention?
-
-Imagine reading a book. Suppose the current word is:
-
-```
-dog
-```
-
-To understand it, you may need to remember:
-
-```
-The  small  brown  dog  ran  fast
-```
-
-The AI also has to remember previous words. This process is called **attention**.
-
-The problem is that re-reading all previous words becomes slow.
-
-FlashAttention is a smarter algorithm that:
-
-- reads fewer values from GPU memory
-- keeps working data in shared memory
-- avoids materializing huge intermediate matrices
-- computes softmax in a single streaming pass
-
-which makes attention much faster and much lighter on memory.
-
----
-
-## 🖥️ How FlashStack Works
-
-```
-User Question
- │
- ▼
-FastAPI Server
- │
- ▼
-Inference Engine
- │
- ▼
-Transformer Model
- │
- ▼
-FlashAttention CUDA Kernel
- │
- ▼
-GPU
- │
- ▼
-Generated Text
-```
-
----
-
-## 📂 Project Structure
+Two repositories, one dependency direction:
+[flash-attention-cuda](https://github.com/shrvan30/flash-attention-cuda) is the
+pure kernel library (pip-installable PyTorch extension); **flashstack** is the
+application that consumes it.
 
 ```
 flashstack/
-│
-├── engine/          Model loading, KV cache, sampling, transformer execution
-├── server/          OpenAI-compatible API, streaming, FastAPI app
-├── agent/           Calculator tool, BM25 search, mock API tool, agent tasks
-├── bench/           Benchmark runner, reports, charts
-└── docs/            Architecture, kernel, benchmarks, profiling, FAQ
+├── engine/    model runners (GPT-2, Qwen2.5), KV cache, sampling, patching
+├── server/    FastAPI app, scheduler (static batching), OpenAI schemas
+├── agent/     ReAct loop, 3 tools, frozen 20-task suite + fictional corpus
+├── bench/     runner, provenance-labelled metrics, scoring, report generator
+└── docs/      writeup, architecture diagram, dispatch analysis
 ```
 
-Documentation layout:
+## 5. End-to-end flow
+
+One decode token, end to end:
 
 ```
-docs/
-│
-├── architecture.md          Complete architecture
-├── writeup.md               Entire project explanation
-├── benchmark.md             Benchmark methodology
-├── engine.md                Inference engine internals
-├── server.md                OpenAI-compatible API
-├── kernel.md                CUDA FlashAttention
-├── faq.md                   Frequently asked questions
-└── profiles/
-    └── decode_dispatch.md   Nsight Systems dispatch analysis
+HTTP request (OpenAI JSON)
+  → server/app.py            parse, stream setup
+  → server/scheduler.py      queue → batch (≤4, 25 ms window)
+  → engine/models/*.py       ModelRunner.decode_step()
+  → engine/kv_cache.py       append this token's K,V row
+  → flashattn_cuda.decode()  split-K attention over the cache   ← the custom kernel
+  → sampling → tokenizer → SSE chunk to the client
 ```
 
-Benchmark layout:
+Prefill is the same path with the whole prompt at once, calling
+`flashattn_cuda.prefill()`.
 
-```
-bench/
-│
-├── run.py
-├── report.py
-├── tasks/
-└── results/
-    ├── flashstack.json
-    ├── vllm.json
-    ├── hosted.json
-    ├── report.md
-    └── plots/
-```
+## 6. CUDA kernel
 
----
+Lives in its own repo; the short version: fp16 inputs / fp32 accumulation,
+shared-memory tiling with online softmax, causal tile skipping, and a **separate
+split-K decode kernel** whose chunk size is chosen at launch to keep ~2 blocks per
+SM in flight (~3x over a fixed chunk at batch 1). Verified against a full-fp32
+PyTorch reference to 2.44e-4 across 99 tests. Kernel-level tables:
+[benchmarks](https://github.com/shrvan30/flash-attention-cuda/blob/main/docs/benchmarks.md) ·
+bridge doc in this repo: [`docs/kernel.md`](docs/kernel.md).
 
-## ✨ Features
+## 7. Attention integration
 
-### ✅ FlashAttention CUDA kernel
+`engine/patching.py` swaps the kernel into HuggingFace GPT-2: split the fused QKV
+projection, reshape to `(B, 12, N, 64)`, call `prefill(causal=True, scale=1/8)`,
+merge heads, keep the original output projection. A module patch, not a fork.
+Proof: greedy generation matches the stock model token-for-token
+(`examples/generate.py` prints `identical output : True`). Qwen2.5-0.5B adds RoPE
+(applied host-side with true position offsets) and GQA (2 KV heads repeated to 14
+host-side — the memory cost is documented as the motivation for kernel-side GQA).
 
-Written completely from scratch. Supports:
+## 8. Inference engine
 
-- FP16
-- Online (streaming) softmax
-- Shared-memory tiling
-- Causal masking
-- Batched multi-head attention
-- Separate prefill and decode kernels
+- **ModelRunner** contract: `prefill(input_ids)` and `decode_step(token_ids)`,
+  parity-tested against stock `model.generate()` under an fp16-ulp tie rule.
+- **KV cache**: preallocated per-layer fp16 `(B_max=8, H_kv, 2048, 64)`, slot
+  lifecycle per request, per-sequence lengths; all indexing logic CPU-tested
+  against an independent loop-based reference.
+- **Sampling**: greedy, temperature, top-p — pure-torch, CPU-testable.
+- Everything except attention stays plain PyTorch **on purpose**: the kernel is
+  the variable under study; the rest is the control.
 
-### ✅ OpenAI-compatible API
+*Deep dive: [`docs/engine.md`](docs/engine.md)*
 
-Works like the OpenAI Chat API:
+## 9. API / streaming server
 
-```
-POST /v1/chat/completions
-```
+- `POST /v1/chat/completions` — streamed (SSE, OpenAI chunk framing, final
+  `[DONE]`) and non-streamed; `GET /v1/models`; `GET /metrics`.
+- **Static batching**: requests queue, group up to 4 within 25 ms, batched prefill
+  then lockstep decode with finished sequences dropping out.
+- **Honest TTFT**: the handler awaits the first generated token before sending
+  headers, so `x-ttft-ms` is a real first-token time.
+- Discovered by building: decode tokens/s **cannot** be a response header on a
+  stream (headers precede the body), so it rides in the final chunk's metrics.
 
-Supports streaming, multi-turn messages, temperature, and max tokens.
+*Deep dive: [`docs/server.md`](docs/server.md)*
 
-### ✅ AI agent
+## 10. Benchmark methodology
 
-Includes a calculator tool, a BM25 search tool, and a mock API tool, used to build realistic agent benchmark tasks.
+The part I would defend hardest in a review (full document:
+[`docs/benchmark.md`](docs/benchmark.md)):
 
-### ✅ Benchmark system
+- **Frozen suite**: 20 fixed tasks (8 single-tool, 8 two-tool, 4 multi-step) over
+  three deterministic tools and a 10-document **fictional** corpus, so answers are
+  offline-verifiable and can't come from model priors. Frozen byte-identical,
+  verified by hash.
+- **Solvability gate first**: before freezing, the suite had to score ≥80% on a
+  strong hosted model. It scored **20/20** — so later low scores measure the small
+  model, not broken tasks ([`bench/results/gate/`](bench/results/gate/)).
+- **Metric provenance**: every figure carries a source label (client-stream /
+  server header / usage) from call → task → JSON → report; the report refuses
+  unlabelled figures and prints each column's source. Published TTFT and decode
+  tok/s are **client-stream on every backend** — one column, one meaning.
+- **Accounting rules**: parse retries are billed (real prefill+decode); HTTP-429
+  throttle waits are not (no tokens consumed) and are counted separately.
+- **One machine**: every published number comes from environment E1 (RTX 3090,
+  driver 580.126.09, CUDA 13.0, torch 2.11+cu130), recorded in the report header.
 
-Measures time to first token, decode speed, total time, and success rate.
+## 11. Results
 
----
+| Backend | Model | Success | TTFT p50 | Decode | Cost/task |
+|---|---|---|---|---|---|
+| **FlashStack** | Qwen2.5-0.5B-Instruct | 3/20 | 101 ms | 39.0 tok/s | $0.00092 |
+| vLLM 0.26 | Qwen2.5-0.5B-Instruct | 2/20 | 24 ms | 273.8 tok/s | $0.00007 |
+| Hosted anchor | Llama-3.3-70B (deliberately larger) | 20/20 | 234 ms | 523.4 tok/s | $0.00137 |
 
-## 📊 Benchmark Results
+Read it correctly:
 
-| Backend | Decode speed |
-|---|---|
-| FlashStack | 39 tokens/sec |
-| vLLM | 273 tokens/sec |
-| Hosted API | 523 tokens/sec |
+- **Success measures the model, not the stack.** The hosted 20/20 proves the tasks
+  are solvable; both locals scoring ~equal (3 vs 2 on n=20 is noise) is the
+  serving-correctness result — my engine preserved the model's capability as
+  faithfully as vLLM did. Per-tier: both locals went **0/4 on multi-step** — a
+  0.5B model cannot sustain schema-perfect JSON across 4+ chained calls.
+- **The interesting discovery** is in the throughput column. I assumed a better
+  attention kernel meant a faster server. The trace says otherwise: ~1,388 GPU ops
+  per token, 2.8 µs each, separated by ~79 µs of host gap — **GPU ~6% busy, ~94%
+  idle**. Remove only those gaps and the identical GPU work runs at ~651 tok/s:
+  16.7x my speed and **2.4x past vLLM**. Host dispatch alone explains the whole
+  7x gap; the attention kernel's share is ≤ ~1.5%.
+- Cost is the same currency with different accounting: locals bill wall-clock GPU
+  time; hosted bills list-price tokens.
 
-Full report: [`bench/results/report.md`](https://github.com/shrvan30/flashstack/blob/main/bench/results/report.md)
+Full report with gap attribution and per-figure provenance:
+[`bench/results/report.md`](bench/results/report.md) ·
+Dispatch evidence: [`docs/profiles/decode_dispatch.md`](docs/profiles/decode_dispatch.md)
 
-### The interesting discovery
+## 12. Engineering decisions
 
-I originally believed:
+- **The agent is a measurement workload, not a product** — minimal ReAct, frozen
+  prompt, deterministic tools; its job is generating realistic multi-call traffic.
+- **AST-whitelisted calculator, never `eval`** — untrusted model output reaches
+  the evaluator.
+- **A published column carries the one meaning measurable on all backends**
+  (client-side observation); richer server figures become labelled cross-checks.
+- **Backoff is the floor, `Retry-After` honored only when larger** — under load
+  the provider's ~200 ms hints just get refused again; finite budget (8), then the
+  task errors honestly.
+- **No provider failover in a benchmark** — failover is an availability pattern;
+  a benchmark holds its instrument constant.
+- **Diagnose, don't optimise, the dispatch bound** — CUDA graphs were out of
+  scope by plan; the measured attribution is the deliverable.
 
-> Better FlashAttention = huge speedup
+## 13. Challenges and debugging
 
-The benchmark showed something different.
+- **The 2/20 that wasn't.** An early run scored 2/20 and looked like model
+  failure. Root cause: my retrieval snippet cap (450 chars) truncated a 743-char
+  catalogue — the asked-for prices were physically unreachable. Fixed, pinned by
+  tests, re-run honestly. Rule learned: when an eval collapses, first ask whether
+  the right answer was even *reachable*.
+- **The near-miss the provenance system caught.** The old code preferred
+  server-reported figures when present — which would have published my engine at
+  66.5 ms in the same column as vLLM's client-measured 24 ms. Self-flattering by a
+  third, invisibly. That's why every figure now carries its source.
+- **The profiler that lied by 1.75x.** Tracing inflates exactly the host gaps
+  being measured (113.5 vs 64.8 ms/step), so GPU-busy % is computed against the
+  untraced step time.
+- **The 429 wall.** A free-tier limit (12k tokens/min) failed 12 tasks before any
+  model call; the fix distinguishes throttle waits from real work in the books.
 
-Most of the time was **not spent inside FlashAttention.** Nsight Systems profiling showed the GPU was only about **6% busy** during decode — it spent the rest of the time waiting on the CPU to launch thousands of tiny kernels. That host dispatch overhead alone accounts for the **7.0× decode gap** against vLLM.
+## 14. Limitations
 
-So the biggest remaining wins are:
+- Head size must be 64 → nothing larger than the 0.5B class today.
+- Static batching only; no continuous batching, paged KV, or CUDA graphs — which
+  is precisely why decode trails vLLM by 7x, per the attribution above.
+- Success rates reflect a 0.5B model's ceiling on strict-JSON multi-step tool use
+  (0/4 multi-step on both locals).
+- n=20 tasks: success differences of 1–2 are noise and are treated as such.
+- Hardware counters were unavailable on the measurement host; the kernel repo
+  tracks counter-validated profiles as follow-up work.
 
-- CUDA Graphs
-- Operator fusion
-- Better scheduling and batching
-
-rather than further micro-optimizing the attention kernel.
-
-Details: [`docs/profiles/decode_dispatch.md`](https://github.com/shrvan30/flashstack/blob/main/docs/profiles/decode_dispatch.md)
-
----
-
-## ⚙️ Installation
-
-Clone the project:
+## 15. Reproduce
 
 ```bash
-git clone https://github.com/shrvan30/flashstack
-cd flashstack
-```
-
-Install:
-
-```bash
+# 1. Install flashstack + the kernel
+git clone https://github.com/shrvan30/flashstack && cd flashstack
 pip install -e .
-```
-
-Install the FlashAttention CUDA kernel:
-
-```bash
 git clone https://github.com/shrvan30/flash-attention-cuda
+TORCH_CUDA_ARCH_LIST=8.6 pip install -e ./flash-attention-cuda --no-build-isolation
+# (8.6 = RTX 3090/A10 · 8.9 = RTX 4090 · 9.0 = H100)
 
-TORCH_CUDA_ARCH_LIST=8.6 \
-pip install -e ./flash-attention-cuda --no-build-isolation
-```
-
-> Set `TORCH_CUDA_ARCH_LIST` to match your GPU (8.6 = RTX 3090 / A10, 8.9 = RTX 4090, 9.0 = H100).
-
----
-
-## ▶ Running the Server
-
-```bash
+# 2. Serve
 python -m uvicorn server.app:app --port 8000
+
+# 3. Chat with any OpenAI client
+python examples/generate.py   # or point openai's base_url at http://localhost:8000/v1
+
+# 4. Benchmark this server
+python -m bench.run --backend flashstack --base-url http://localhost:8000/v1 \
+  --model Qwen/Qwen2.5-0.5B-Instruct --stream
+
+# 5. Benchmark vLLM on the same GPU (separate venv recommended)
+vllm serve Qwen/Qwen2.5-0.5B-Instruct --port 8001
+python -m bench.run --backend vllm --base-url http://localhost:8001/v1 \
+  --model Qwen/Qwen2.5-0.5B-Instruct --stream
+
+# 6. Optional hosted anchor (any OpenAI-compatible endpoint)
+export HOSTED_BASE_URL=... HOSTED_API_KEY=... HOSTED_MODEL=...
+python -m bench.run --backend hosted --base-url "$HOSTED_BASE_URL" \
+  --model "$HOSTED_MODEL" --stream \
+  --input-price-per-mtok 0.59 --output-price-per-mtok 0.79
+
+# 7. Report
+python -m bench.report        # -> bench/results/report.md + comparison.svg
 ```
 
-### Example client
+The task suite (`agent/tasks.json`, `agent/corpus/`, system prompt) is **frozen**;
+editing it invalidates every published comparison.
 
-```python
-from openai import OpenAI
-
-client = OpenAI(
-    base_url="http://localhost:8000/v1",
-    api_key="not-needed",
-)
-
-for chunk in client.chat.completions.create(
-    model="Qwen/Qwen2.5-0.5B-Instruct",
-    messages=[{"role": "user", "content": "Explain AI"}],
-    stream=True,
-):
-    print(chunk.choices[0].delta.content or "", end="")
-```
-
----
-
-## 🧪 Running Benchmarks
-
-```bash
-python -m bench.run \
-  --backend flashstack \
-  --base-url http://localhost:8000/v1 \
-  --model Qwen/Qwen2.5-0.5B-Instruct \
-  --stream
-```
-
-Generate the report:
-
-```bash
-python -m bench.report
-```
-
----
-
-## 🔬 Continuous Integration (CI)
+## 16. Tests / CI
 
 | Workflow | Purpose |
 |---|---|
-| [`ci.yml`](https://github.com/shrvan30/flashstack/blob/main/.github/workflows/ci.yml) | Unit tests, import checks, packaging |
-| [`gpu-tests.yml`](https://github.com/shrvan30/flashstack/blob/main/.github/workflows/gpu-tests.yml) | Kernel correctness tests on GPU runners |
-| [`lint.yml`](https://github.com/shrvan30/flashstack/blob/main/.github/workflows/lint.yml) | Formatting and static checks |
-| [`docs.yml`](https://github.com/shrvan30/flashstack/blob/main/.github/workflows/docs.yml) | Documentation build |
+| [`ci.yml`](.github/workflows/ci.yml) | ruff lint + ~172 CPU tests: KV-cache indexing vs a reference impl, sampling, SSE framing, agent JSON parsing, metric provenance |
+
+GPU-marked tests (kernel parity, server end-to-end) run on real hardware before
+every tag — there is no GPU runner in CI, and this README won't pretend otherwise.
+
+## 17. Future work
+
+- CUDA graphs / compiled host loop — attacks the measured 94%-idle gap directly
+- Continuous batching, then paged KV — the concurrency story
+- Head-dim 128 + kernel-side GQA in the kernel repo — unlocks larger models,
+  which is what raises the success column
+- Counter-validated kernel profiles (tracked in the kernel repo)
 
 ---
 
-## 🛠 Technologies Used
+## Documentation
 
-```
-FlashStack
-│
-├── CUDA / C++
-├── PyTorch
-├── Transformers (HuggingFace)
-├── FastAPI + Uvicorn
-├── OpenAI SDK
-├── NumPy
-├── BM25
-├── FlashAttention CUDA (custom kernel)
-└── Nsight Systems
-```
+| Resource | Description |
+|---|---|
+| [`docs/writeup.md`](docs/writeup.md) | The full story, layer by layer, and the surprise at the end |
+| [`docs/architecture.md`](docs/architecture.md) | System architecture: the two repos, four layers, and design principles |
+| [`docs/engine.md`](docs/engine.md) | Inference engine internals: ModelRunner, KV cache, RoPE/GQA, the tie gate |
+| [`docs/server.md`](docs/server.md) | The OpenAI-compatible server: SSE, static batching, honest TTFT |
+| [`docs/kernel.md`](docs/kernel.md) | Bridge to the CUDA kernel: what FlashStack calls and why it's shaped that way |
+| [`docs/benchmark.md`](docs/benchmark.md) | Benchmark methodology: frozen suite, solvability gate, provenance, accounting |
+| [`docs/faq.md`](docs/faq.md) | The questions people actually ask, answered honestly |
+| [`bench/results/report.md`](bench/results/report.md) | Complete benchmark report: gap attribution, provenance, accounting rules |
+| [`docs/profiles/decode_dispatch.md`](docs/profiles/decode_dispatch.md) | Nsight Systems dispatch analysis (the ~6%-busy finding) |
+| [`docs/architecture.svg`](docs/architecture.svg) | Architecture diagram |
+| [Kernel repo](https://github.com/shrvan30/flash-attention-cuda) | The CUDA kernel: design, benchmarks, roofline analysis |
 
----
+## License
 
-## 📈 Learning Roadmap
-
-```
-README
-   ▼
-Architecture
-   ▼
-Engine
-   ▼
-CUDA FlashAttention
-   ▼
-Benchmark
-   ▼
-Nsight Profiling
-   ▼
-Future Work
-```
-
-After working through this project you will understand how transformers generate text, what attention does, why GPUs matter, how CUDA kernels and shared memory work, how streaming inference APIs are built, and how to benchmark and profile an inference stack.
-
----
-
-## 🚀 Future Improvements
-
-- Continuous batching
-- CUDA Graphs
-- Operator fusion
-- Paged KV cache
-- Tensor parallelism
-- Multi-GPU support
-
----
-
-## 📖 Related Research
-
-- [FlashAttention: Fast and Memory-Efficient Exact Attention with IO-Awareness](https://arxiv.org/abs/2205.14135)
-- [FlashAttention-2: Faster Attention with Better Parallelism and Work Partitioning](https://arxiv.org/abs/2307.08691)
-- [NVIDIA CUDA C++ Programming Guide](https://docs.nvidia.com/cuda/cuda-c-programming-guide/)
-- [NVIDIA Nsight Systems Documentation](https://docs.nvidia.com/nsight-systems/)
-- [PyTorch Documentation](https://pytorch.org/docs/stable/index.html)
-- [HuggingFace Transformers Documentation](https://huggingface.co/docs/transformers)
-- [vLLM Documentation](https://docs.vllm.ai/)
-- [OpenAI Chat Completions API Reference](https://platform.openai.com/docs/api-reference/chat)
-
----
-
-## ❤️ Acknowledgements
-
-Thanks to the NVIDIA CUDA, PyTorch, HuggingFace, and vLLM communities, and to the authors of the FlashAttention papers.
-
----
-
-## 📜 License
-
-MIT License — see [LICENSE](https://github.com/shrvan30/flashstack/blob/main/LICENSE).
-
----
-
-<p align="center">
-  ⭐ If this project helped you, star it on GitHub. Happy learning 🚀
-</p>
+MIT — see [LICENSE](LICENSE). Thanks to the CUDA, PyTorch, HuggingFace, and vLLM
+communities, and the FlashAttention authors.
